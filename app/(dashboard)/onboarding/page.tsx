@@ -151,7 +151,7 @@ export default function OnboardingPage() {
     try {
       const tone = " Be warm, friendly, and conversational.";
       const systemPrompt = `You are a helpful WhatsApp assistant for ${businessName}, a ${industry.toLowerCase()} business. ${description}${tone} Reply in the same language the customer uses. Keep replies concise.`;
-      await axios.post(`${API}/api/bots/${BOT_ID}`, {
+      await axios.patch(`${API}/api/bots/${BOT_ID}`, {
         display_name: businessName,
         system_prompt: systemPrompt,
         language: language === "Auto-detect" ? "auto" : language.toLowerCase(),
@@ -446,8 +446,8 @@ export default function OnboardingPage() {
                   <div className="flex justify-between items-center">
                     <span className="text-slate-500">Webhook URL</span>
                     <div className="flex items-center gap-2">
-                      <code className="text-[11px] bg-slate-100 px-2 py-1 rounded">https://your-domain.com/webhook</code>
-                      <button className="text-[11px] text-[#1D9E75] font-semibold hover:underline" onClick={() => { navigator.clipboard.writeText("https://your-domain.com/webhook"); setToast({ message: "Copied!", type: "success" }); }}>Copy</button>
+                      <code className="text-[11px] bg-slate-100 px-2 py-1 rounded">{API}/webhook</code>
+                      <button className="text-[11px] text-[#1D9E75] font-semibold hover:underline" onClick={() => { navigator.clipboard.writeText(`${API}/webhook`); setToast({ message: "Copied!", type: "success" }); }}>Copy</button>
                     </div>
                   </div>
                   <div className="flex justify-between items-center">

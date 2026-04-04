@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSession, signOut } from "next-auth/react";
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: HomeIcon },
@@ -14,6 +15,10 @@ const navItems = [
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const { data: session } = useSession();
+  const userName = session?.user?.name || "My Business";
+  const userEmail = session?.user?.email || "";
+  const initials = userName.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2);
 
   return (
     <aside
@@ -105,18 +110,29 @@ export default function Sidebar() {
       </div>
 
       {/* User */}
-      <div className="px-4 py-4 border-t border-white/10 flex items-center gap-3">
-        <div
-          className="w-[40px] h-[40px] rounded-full flex items-center justify-center text-sm font-bold text-white relative"
-          style={{ background: "linear-gradient(135deg, #34C48E, #0F6E56)" }}
+      <div className="px-4 py-4 border-t border-white/10">
+        <div className="flex items-center gap-3 mb-3">
+          <div
+            className="w-[40px] h-[40px] rounded-full flex items-center justify-center text-sm font-bold text-white relative shrink-0"
+            style={{ background: "linear-gradient(135deg, #34C48E, #0F6E56)" }}
+          >
+            {initials}
+            <div className="absolute bottom-0 right-0 w-[10px] h-[10px] rounded-full bg-emerald-400 border-2 border-[#0F6E56]" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-white text-[13px] font-semibold truncate">{userName}</div>
+            <div className="text-white/50 text-[11px] truncate">{userEmail}</div>
+          </div>
+        </div>
+        <button
+          onClick={() => signOut({ callbackUrl: "/login" })}
+          className="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-[12px] font-medium text-white/70 hover:text-white hover:bg-white/10 transition-all"
         >
-          TB
-          <div className="absolute bottom-0 right-0 w-[10px] h-[10px] rounded-full bg-emerald-400 border-2 border-[#0F6E56]" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="text-white text-[13px] font-semibold truncate">Test Business</div>
-          <div className="text-white/50 text-[11px] truncate">test@waintel.ai</div>
-        </div>
+          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+          </svg>
+          Sign Out
+        </button>
       </div>
     </aside>
   );

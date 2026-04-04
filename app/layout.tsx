@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import Sidebar from "@/components/Sidebar";
+import SessionProvider from "@/components/SessionProvider";
 
 const inter = Inter({
   variable: "--font-geist-sans",
@@ -20,11 +20,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${inter.variable} h-full`}>
-      <body suppressHydrationWarning className="min-h-screen flex" style={{ background: "#f6f7fb" }}>
-        <Sidebar />
-        <main className="flex-1 ml-[264px] min-h-screen overflow-y-auto">
+      <body suppressHydrationWarning className="min-h-screen" style={{ background: "#f6f7fb" }}>
+        <SessionProvider>
           {children}
-        </main>
+        </SessionProvider>
       </body>
     </html>
   );

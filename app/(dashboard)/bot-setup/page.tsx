@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import axios from "axios";
 import Toast from "@/components/Toast";
 
@@ -12,22 +12,85 @@ const TONES = ["Friendly", "Professional", "Formal"];
 const LANGUAGES = ["Auto-detect", "Urdu", "English", "Arabic"];
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
+const DEFAULT_HOURS = Object.fromEntries(DAYS.map((d) => [d, { enabled: true, open: "09:00", close: "22:00" }]));
+
+function detectTone(prompt: string): string {
+  if (/professional|structured/i.test(prompt)) return "Professional";
+  if (/formal|respectful/i.test(prompt)) return "Formal";
+  return "Friendly";
+}
+
+function detectIndustry(prompt: string): string {
+  for (const ind of INDUSTRIES) {
+    if (prompt.toLowerCase().includes(ind.toLowerCase())) return ind;
+  }
+  return "Other";
+}
+
+function extractDescription(prompt: string): string {
+  // Strip the boilerplate wrapper, keep the business-specific part
+  return prompt
+    .replace(/^You are a helpful WhatsApp assistant for [^.]*\.\s*/i, "")
+    .replace(/\s*Be (warm|professional|formal)[^.]*\.\s*/gi, "")
+    .replace(/\s*Reply in the same language[^.]*\.\s*/gi, "")
+    .replace(/\s*Keep replies concise\.?\s*/gi, "")
+    .replace(/\s*Be concise[^.]*\.?\s*/gi, "")
+    .trim();
+}
+
 export default function BotSetupPage() {
+  const [loading, setLoading] = useState(true);
   const [form, setForm] = useState({
-    displayName: "Waintel Test Bot",
-    industry: "Restaurant",
+    displayName: "",
+    industry: "Other",
     businessDescription: "",
     tone: "Friendly",
     language: "Auto-detect",
     responseLength: "Medium",
-    businessHours: Object.fromEntries(DAYS.map((d) => [d, { enabled: true, open: "09:00", close: "22:00" }])),
-    outsideHoursMessage: "Hamari timing 9am se 10pm hai. Kal subah message karein, hum zaroor jawab dein ge!",
-    escalationNumber: "+92",
+    businessHours: DEFAULT_HOURS as Record<string, { enabled: boolean; open: string; close: string }>,
+    outsideHoursMessage: "",
+    escalationNumber: "",
     escalationKeywords: ["complaint", "refund", "manager", "urgent", "shikayat"],
     alertOnEscalation: true,
+    phoneNumberId: "",
   });
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+
+  // Fetch current bot config on mount
+  useEffect(() => {
+    async function fetchBot() {
+      try {
+        const res = await axios.get(`${API}/api/bots/${BOT_ID}`);
+        const bot = res.data;
+
+        const lang = bot.language === "auto" ? "Auto-detect"
+          : bot.language ? bot.language.charAt(0).toUpperCase() + bot.language.slice(1)
+          : "Auto-detect";
+
+        const hours = (bot.business_hours && Object.keys(bot.business_hours).length > 0)
+          ? bot.business_hours
+          : DEFAULT_HOURS;
+
+        setForm((f) => ({
+          ...f,
+          displayName: bot.display_name || "",
+          industry: bot.system_prompt ? detectIndustry(bot.system_prompt) : "Other",
+          businessDescription: bot.system_prompt ? extractDescription(bot.system_prompt) : "",
+          tone: bot.system_prompt ? detectTone(bot.system_prompt) : "Friendly",
+          language: lang,
+          businessHours: hours,
+          escalationNumber: bot.escalation_number || "+92",
+          phoneNumberId: bot.phone_number_id || "",
+        }));
+      } catch {
+        setToast({ message: "Failed to load bot config", type: "error" });
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchBot();
+  }, []);
 
   const updateField = (field: string, value: unknown) => setForm((f) => ({ ...f, [field]: value }));
 
@@ -72,7 +135,7 @@ export default function BotSetupPage() {
       const systemPrompt =
         `You are a helpful WhatsApp assistant for ${form.displayName}, a ${form.industry.toLowerCase()} business. ${form.businessDescription}${tonePrompt} Reply in the same language the customer uses. Keep replies concise.`;
 
-      await axios.post(`${API}/api/bots/${BOT_ID}`, {
+      await axios.patch(`${API}/api/bots/${BOT_ID}`, {
         display_name: form.displayName,
         system_prompt: systemPrompt,
         language: form.language === "Auto-detect" ? "auto" : form.language.toLowerCase(),
@@ -86,6 +149,14 @@ export default function BotSetupPage() {
       setSaving(false);
     }
   }, [form]);
+
+  if (loading) {
+    return (
+      <div className="p-8 animate-fade-in max-w-4xl">
+        <div className="text-center py-20 text-slate-400">Loading bot configuration...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-8 animate-fade-in max-w-4xl">
@@ -178,7 +249,7 @@ export default function BotSetupPage() {
         </h2>
         <div className="space-y-3 mb-4">
           {DAYS.map((day) => {
-            const h = form.businessHours[day];
+            const h = form.businessHours[day] || { enabled: true, open: "09:00", close: "22:00" };
             return (
               <div key={day} className="flex items-center gap-4">
                 <button onClick={() => toggleDay(day)} className="w-[100px] text-[13px] font-medium text-left" style={{ color: h.enabled ? "#1e293b" : "#94a3b8" }}>
@@ -249,7 +320,7 @@ export default function BotSetupPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
           <div>
             <label className="form-label">Phone Number ID</label>
-            <input className="form-input !bg-slate-100 !text-slate-500" value="978640512008474" readOnly />
+            <input className="form-input !bg-slate-100 !text-slate-500" value={form.phoneNumberId} readOnly />
           </div>
           <div>
             <label className="form-label">Connection Status</label>
