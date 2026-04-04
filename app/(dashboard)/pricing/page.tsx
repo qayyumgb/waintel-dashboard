@@ -67,11 +67,16 @@ export default function PricingPage() {
       return;
     }
 
+    if (!TENANT_ID) {
+      setToast({ message: "Please log in first", type: "error" });
+      return;
+    }
+
     setLoading(planName);
     try {
       const res = await axios.post(`${API}/api/billing/create-checkout`, {
         tenantId: TENANT_ID,
-        priceId: planName === "Starter" ? process.env.NEXT_PUBLIC_STRIPE_STARTER_PRICE || "" : process.env.NEXT_PUBLIC_STRIPE_BUSINESS_PRICE || "",
+        plan: planName.toLowerCase(),
         successUrl: `${window.location.origin}?success=true`,
         cancelUrl: `${window.location.origin}/pricing`,
       });
