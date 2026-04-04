@@ -3,9 +3,9 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import axios from "axios";
 import Toast from "@/components/Toast";
+import { useAuth } from "@/lib/useAuth";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
-const BOT_ID = "af4f198b-d081-4dc2-8e14-a0cd530658c7";
 
 interface Source {
   filename: string;
@@ -21,6 +21,8 @@ interface Chunk {
 }
 
 export default function KnowledgePage() {
+  const { botId } = useAuth();
+  const BOT_ID = botId || "";
   const [sources, setSources] = useState<Source[]>([]);
   const [totalChunks, setTotalChunks] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -45,6 +47,7 @@ export default function KnowledgePage() {
   };
 
   const fetchStatus = useCallback(async () => {
+    if (!BOT_ID) return;
     try {
       const res = await axios.get(`${API}/api/knowledge/${BOT_ID}/status`);
       setSources(res.data.sources || []);
@@ -54,7 +57,7 @@ export default function KnowledgePage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [BOT_ID]);
 
   useEffect(() => { fetchStatus(); }, [fetchStatus]);
 

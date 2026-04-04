@@ -3,9 +3,9 @@
 import { useState, useRef } from "react";
 import axios from "axios";
 import Toast from "@/components/Toast";
+import { useAuth } from "@/lib/useAuth";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
-const BOT_ID = "af4f198b-d081-4dc2-8e14-a0cd530658c7";
 
 const INDUSTRIES = ["Restaurant", "Pharmacy", "Real Estate", "Hotel", "E-commerce", "Education", "Other"];
 
@@ -16,6 +16,8 @@ interface Errors {
 }
 
 export default function OnboardingPage() {
+  const { botId } = useAuth();
+  const BOT_ID = botId || "";
   const [step, setStep] = useState(1);
   const [errors, setErrors] = useState<Errors>({});
 

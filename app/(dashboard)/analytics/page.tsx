@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import axios from "axios";
+import { useAuth } from "@/lib/useAuth";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
@@ -14,15 +15,17 @@ interface Analytics {
 }
 
 export default function AnalyticsPage() {
+  const { botId } = useAuth();
   const [data, setData] = useState<Analytics | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    axios.get(`${API}/api/stats/analytics`)
+    if (!botId) return;
+    axios.get(`${API}/api/stats/analytics?botId=${botId}`)
       .then((res) => setData(res.data))
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, []);
+  }, [botId]);
 
   const maxDaily = Math.max(...(data?.dailyMessages.map((d) => d.count) || [1]));
   const totalMsgs = (data?.voiceMessages || 0) + (data?.textMessages || 0);

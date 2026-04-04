@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import axios from "axios";
+import { useAuth } from "@/lib/useAuth";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
@@ -14,6 +15,7 @@ interface ConversationRow {
 }
 
 export default function DashboardPage() {
+  const { botId } = useAuth();
   const [stats, setStats] = useState({ totalConversations: 0, today: 0, thisWeek: 0 });
   const [messagesToday, setMessagesToday] = useState(0);
   const [knowledgeChunks, setKnowledgeChunks] = useState(0);
@@ -21,13 +23,14 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!botId) return;
     async function fetchData() {
       try {
         const [convRes, msgRes, knowledgeRes, convListRes] = await Promise.allSettled([
-          axios.get(`${API}/api/stats/conversations`),
-          axios.get(`${API}/api/stats/messages-today`),
-          axios.get(`${API}/api/knowledge/af4f198b-d081-4dc2-8e14-a0cd530658c7/status`),
-          axios.get(`${API}/api/conversations?limit=5`),
+          axios.get(`${API}/api/stats/conversations?botId=${botId}`),
+          axios.get(`${API}/api/stats/messages-today?botId=${botId}`),
+          axios.get(`${API}/api/knowledge/${botId}/status`),
+          axios.get(`${API}/api/conversations?botId=${botId}&limit=5`),
         ]);
 
         if (convRes.status === "fulfilled") {
@@ -47,7 +50,7 @@ export default function DashboardPage() {
       }
     }
     fetchData();
-  }, []);
+  }, [botId]);
 
   const statCards = [
     { label: "Total Conversations", value: stats.totalConversations, icon: ChatIcon, accent: "#1D9E75" },

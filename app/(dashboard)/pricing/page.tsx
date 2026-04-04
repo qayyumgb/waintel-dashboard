@@ -3,9 +3,9 @@
 import { useState } from "react";
 import axios from "axios";
 import Toast from "@/components/Toast";
+import { useAuth } from "@/lib/useAuth";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
-const TENANT_ID = "2556563a-748a-401c-8985-88676f18b694";
 
 const plans = [
   {
@@ -57,6 +57,7 @@ const plans = [
 ];
 
 export default function PricingPage() {
+  const { tenantId: TENANT_ID } = useAuth();
   const [loading, setLoading] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 

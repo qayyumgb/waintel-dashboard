@@ -3,9 +3,9 @@
 import { useState, useCallback, useEffect } from "react";
 import axios from "axios";
 import Toast from "@/components/Toast";
+import { useAuth } from "@/lib/useAuth";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
-const BOT_ID = "af4f198b-d081-4dc2-8e14-a0cd530658c7";
 
 const INDUSTRIES = ["Restaurant", "Pharmacy", "Real Estate", "Hotel", "E-commerce", "Education", "Other"];
 const TONES = ["Friendly", "Professional", "Formal"];
@@ -39,6 +39,8 @@ function extractDescription(prompt: string): string {
 }
 
 export default function BotSetupPage() {
+  const { botId } = useAuth();
+  const BOT_ID = botId || "";
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState({
     displayName: "",
@@ -59,6 +61,7 @@ export default function BotSetupPage() {
 
   // Fetch current bot config on mount
   useEffect(() => {
+    if (!BOT_ID) return;
     async function fetchBot() {
       try {
         const res = await axios.get(`${API}/api/bots/${BOT_ID}`);
@@ -90,7 +93,7 @@ export default function BotSetupPage() {
       }
     }
     fetchBot();
-  }, []);
+  }, [BOT_ID]);
 
   const updateField = (field: string, value: unknown) => setForm((f) => ({ ...f, [field]: value }));
 

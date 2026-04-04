@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import axios from "axios";
 import Toast from "@/components/Toast";
+import { useAuth } from "@/lib/useAuth";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
@@ -39,6 +40,7 @@ function formatPhone(phone: string): string {
 }
 
 export default function ConversationsPage() {
+  const { botId } = useAuth();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -54,13 +56,15 @@ export default function ConversationsPage() {
 
   // Fetch conversation list
   const fetchConversations = useCallback(async () => {
+    if (!botId) return;
     try {
-      const res = await axios.get(`${API}/api/conversations?limit=50`);
+      const res = await axios.get(`${API}/api/conversations?botId=${botId}&limit=50`);
       setConversations(res.data.conversations || []);
     } catch { /* silent */ }
-  }, []);
+  }, [botId]);
 
   useEffect(() => {
+    if (!botId) return;
     fetchConversations();
     const interval = setInterval(fetchConversations, 10000);
     return () => clearInterval(interval);
@@ -85,7 +89,8 @@ export default function ConversationsPage() {
 
   // SSE connection
   useEffect(() => {
-    const eventSource = new EventSource(`${API}/api/conversations/stream`);
+    if (!botId) return;
+    const eventSource = new EventSource(`${API}/api/conversations/stream?botId=${botId}`);
 
     eventSource.onmessage = (event) => {
       try {
@@ -118,7 +123,7 @@ export default function ConversationsPage() {
     };
 
     return () => eventSource.close();
-  }, [fetchConversations]);
+  }, [botId, fetchConversations]);
 
   // Send reply
   const sendReply = async () => {
