@@ -9,6 +9,7 @@ const navItems = [
   { href: "/knowledge", label: "Knowledge Base", icon: BookIcon },
   { href: "/conversations", label: "Conversations", icon: ChatIcon },
   { href: "/analytics", label: "Analytics", icon: ChartIcon },
+  { href: "/pricing", label: "Billing", icon: CardIcon },
 ];
 
 export default function Sidebar() {
@@ -74,6 +75,23 @@ export default function Sidebar() {
           );
         })}
       </nav>
+
+      {/* Onboarding CTA */}
+      <a
+        href="/onboarding"
+        className="mx-4 mb-3 p-4 rounded-xl flex items-center gap-3 transition-all hover:scale-[1.02]"
+        style={{ background: "rgba(255,255,255,0.12)", backdropFilter: "blur(8px)" }}
+      >
+        <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "rgba(255,255,255,0.2)" }}>
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+          </svg>
+        </div>
+        <div>
+          <div className="text-white text-[12px] font-semibold">Setup Wizard</div>
+          <div className="text-white/50 text-[10px]">Get started in 10 min</div>
+        </div>
+      </a>
 
       {/* Info Box */}
       <div className="mx-4 mb-4 p-4 rounded-xl" style={{ background: "rgba(255,255,255,0.1)", backdropFilter: "blur(8px)" }}>
@@ -141,6 +159,14 @@ function ChartIcon() {
   return (
     <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+    </svg>
+  );
+}
+
+function CardIcon() {
+  return (
+    <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
     </svg>
   );
 }
