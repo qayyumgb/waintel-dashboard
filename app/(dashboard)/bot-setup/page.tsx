@@ -55,6 +55,15 @@ export default function BotSetupPage() {
     escalationKeywords: ["complaint", "refund", "manager", "urgent", "shikayat"],
     alertOnEscalation: true,
     phoneNumberId: "",
+    jazzcashEnabled: false,
+    jazzcashNumber: "",
+    easypaisaEnabled: false,
+    easypaisaNumber: "",
+    codEnabled: false,
+    codDeliveryAreas: "",
+    codDeliveryCharge: 100,
+    codFreeAbove: 1500,
+    codMinOrder: 300,
   });
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
@@ -85,6 +94,15 @@ export default function BotSetupPage() {
           businessHours: hours,
           escalationNumber: bot.escalation_number || "+92",
           phoneNumberId: bot.phone_number_id || "",
+          jazzcashEnabled: bot.jazzcash_enabled || false,
+          jazzcashNumber: bot.jazzcash_number || "",
+          easypaisaEnabled: bot.easypaisa_enabled || false,
+          easypaisaNumber: bot.easypaisa_number || "",
+          codEnabled: bot.cod_enabled || false,
+          codDeliveryAreas: bot.cod_delivery_areas || "",
+          codDeliveryCharge: bot.cod_delivery_charge || 100,
+          codFreeAbove: bot.cod_free_above || 1500,
+          codMinOrder: bot.cod_min_order || 300,
         }));
       } catch {
         setToast({ message: "Failed to load bot config", type: "error" });
@@ -144,6 +162,15 @@ export default function BotSetupPage() {
         language: form.language === "Auto-detect" ? "auto" : form.language.toLowerCase(),
         escalation_number: form.escalationNumber,
         business_hours: form.businessHours,
+        jazzcash_enabled: form.jazzcashEnabled,
+        jazzcash_number: form.jazzcashNumber,
+        easypaisa_enabled: form.easypaisaEnabled,
+        easypaisa_number: form.easypaisaNumber,
+        cod_enabled: form.codEnabled,
+        cod_delivery_areas: form.codDeliveryAreas,
+        cod_delivery_charge: form.codDeliveryCharge,
+        cod_free_above: form.codFreeAbove,
+        cod_min_order: form.codMinOrder,
       });
       setToast({ message: "Bot configuration saved!", type: "success" });
     } catch {
@@ -328,6 +355,88 @@ export default function BotSetupPage() {
           <div>
             <label className="form-label">Connection Status</label>
             <div className="mt-2"><span className="badge-active">Connected</span></div>
+          </div>
+        </div>
+      </div>
+
+      {/* Section 6 — Payment Settings */}
+      <div className="card mb-8">
+        <h2 className="text-[16px] font-bold text-slate-800 mb-5 flex items-center gap-2">
+          <span className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold text-white" style={{ background: "#1D9E75" }}>6</span>
+          Payment Settings
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+          {/* JazzCash */}
+          <div className="p-4 rounded-xl border border-slate-200">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-[14px] font-semibold text-slate-800">{"\uD83D\uDFE0"} JazzCash</span>
+              <button onClick={() => updateField("jazzcashEnabled", !form.jazzcashEnabled)} className="w-10 h-5 rounded-full relative transition-all" style={{ background: form.jazzcashEnabled ? "#e65100" : "#cbd5e1" }}>
+                <div className="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all" style={{ left: form.jazzcashEnabled ? "20px" : "2px" }} />
+              </button>
+            </div>
+            {form.jazzcashEnabled && (
+              <div>
+                <label className="form-label">Merchant Number</label>
+                <input className="form-input" value={form.jazzcashNumber} onChange={(e) => updateField("jazzcashNumber", e.target.value)} placeholder="03001234567" />
+              </div>
+            )}
+          </div>
+
+          {/* Easypaisa */}
+          <div className="p-4 rounded-xl border border-slate-200">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-[14px] font-semibold text-slate-800">{"\uD83D\uDC9A"} Easypaisa</span>
+              <button onClick={() => updateField("easypaisaEnabled", !form.easypaisaEnabled)} className="w-10 h-5 rounded-full relative transition-all" style={{ background: form.easypaisaEnabled ? "#1b5e20" : "#cbd5e1" }}>
+                <div className="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all" style={{ left: form.easypaisaEnabled ? "20px" : "2px" }} />
+              </button>
+            </div>
+            {form.easypaisaEnabled && (
+              <div>
+                <label className="form-label">Merchant Number</label>
+                <input className="form-input" value={form.easypaisaNumber} onChange={(e) => updateField("easypaisaNumber", e.target.value)} placeholder="03331234567" />
+              </div>
+            )}
+          </div>
+
+          {/* COD */}
+          <div className="p-4 rounded-xl border border-slate-200">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-[14px] font-semibold text-slate-800">{"\uD83D\uDEF5"} Cash on Delivery</span>
+              <button onClick={() => updateField("codEnabled", !form.codEnabled)} className="w-10 h-5 rounded-full relative transition-all" style={{ background: form.codEnabled ? "#0d47a1" : "#cbd5e1" }}>
+                <div className="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all" style={{ left: form.codEnabled ? "20px" : "2px" }} />
+              </button>
+            </div>
+            {form.codEnabled && (
+              <div className="space-y-3">
+                <div>
+                  <label className="form-label">Delivery Areas</label>
+                  <input className="form-input" value={form.codDeliveryAreas} onChange={(e) => updateField("codDeliveryAreas", e.target.value)} placeholder="Gulshan, PECHS, Defence" />
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="form-label">Delivery Rs.</label>
+                    <input type="number" className="form-input" value={form.codDeliveryCharge} onChange={(e) => updateField("codDeliveryCharge", parseInt(e.target.value) || 0)} />
+                  </div>
+                  <div>
+                    <label className="form-label">Free Above Rs.</label>
+                    <input type="number" className="form-input" value={form.codFreeAbove} onChange={(e) => updateField("codFreeAbove", parseInt(e.target.value) || 0)} />
+                  </div>
+                  <div>
+                    <label className="form-label">Min Order Rs.</label>
+                    <input type="number" className="form-input" value={form.codMinOrder} onChange={(e) => updateField("codMinOrder", parseInt(e.target.value) || 0)} />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Stripe — coming soon */}
+          <div className="p-4 rounded-xl border border-slate-200 opacity-60">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-[14px] font-semibold text-slate-800">{"\uD83D\uDCB3"} Stripe</span>
+              <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-slate-100 text-slate-500">COMING SOON</span>
+            </div>
+            <p className="text-[12px] text-slate-400">International card payments. Available in Phase 3.</p>
           </div>
         </div>
       </div>

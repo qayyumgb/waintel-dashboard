@@ -1,0 +1,198 @@
+"use client";
+
+import { useEffect, useState, useCallback } from "react";
+import axios from "axios";
+import { useAuth } from "@/lib/useAuth";
+import Toast from "@/components/Toast";
+
+const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+
+interface Order {
+  id: string;
+  order_reference: string;
+  customer_phone: string;
+  items: any[];
+  subtotal: string;
+  delivery_charge: string;
+  total_amount: string;
+  payment_method: string;
+  payment_status: string;
+  delivery_status: string;
+  delivery_address: string | null;
+  created_at: string;
+}
+
+interface Stats {
+  todayOrders: number;
+  todayRevenue: number;
+  pendingOrders: number;
+  monthRevenue: number;
+}
+
+function formatPhone(phone: string): string {
+  if (phone?.startsWith("92") && phone.length >= 12) return `0${phone.slice(2, 5)}-${phone.slice(5)}`;
+  return phone || "";
+}
+
+function timeAgo(date: string): string {
+  const s = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
+  if (s < 60) return "just now";
+  if (s < 3600) return `${Math.floor(s / 60)}m ago`;
+  if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
+  return `${Math.floor(s / 86400)}d ago`;
+}
+
+const paymentBadge: Record<string, { bg: string; color: string }> = {
+  jazzcash: { bg: "#fff3e0", color: "#e65100" },
+  easypaisa: { bg: "#e8f5e9", color: "#1b5e20" },
+  cod: { bg: "#e3f2fd", color: "#0d47a1" },
+};
+
+const statusBadge: Record<string, { bg: string; color: string }> = {
+  pending: { bg: "#fffde7", color: "#f57f17" },
+  confirmed: { bg: "#e8f5e9", color: "#1b5e20" },
+  cod_pending: { bg: "#e3f2fd", color: "#0d47a1" },
+  delivered: { bg: "#f5f5f5", color: "#616161" },
+};
+
+export default function OrdersPage() {
+  const { botId } = useAuth();
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [stats, setStats] = useState<Stats>({ todayOrders: 0, todayRevenue: 0, pendingOrders: 0, monthRevenue: 0 });
+  const [filter, setFilter] = useState("all");
+  const [loading, setLoading] = useState(true);
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+
+  const fetchData = useCallback(async () => {
+    if (!botId) return;
+    try {
+      const [ordersRes, statsRes] = await Promise.all([
+        axios.get(`${API}/api/orders?botId=${botId}&status=${filter}&limit=50`),
+        axios.get(`${API}/api/orders/stats?botId=${botId}`),
+      ]);
+      setOrders(ordersRes.data.orders || []);
+      setStats(statsRes.data);
+    } catch { /* silent */ } finally { setLoading(false); }
+  }, [botId, filter]);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  const markDelivered = async (orderId: string) => {
+    try {
+      await axios.patch(`${API}/api/orders/${orderId}`, { deliveryStatus: "delivered", status: "delivered" });
+      setToast({ message: "Order marked as delivered", type: "success" });
+      fetchData();
+    } catch {
+      setToast({ message: "Failed to update order", type: "error" });
+    }
+  };
+
+  const statCards = [
+    { label: "Today's Orders", value: stats.todayOrders },
+    { label: "Today's Revenue", value: `Rs. ${stats.todayRevenue}` },
+    { label: "Pending Orders", value: stats.pendingOrders },
+    { label: "Month Revenue", value: `Rs. ${stats.monthRevenue}` },
+  ];
+
+  return (
+    <div className="p-8 animate-fade-in">
+      <div className="mb-8">
+        <div className="page-breadcrumb">
+          <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+          </svg>
+          Orders
+        </div>
+        <h1 className="text-[28px] font-bold text-slate-900 mb-2">Orders</h1>
+        <p className="text-[16px] text-slate-500">Track and manage customer orders.</p>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        {statCards.map((c) => (
+          <div key={c.label} className="card !py-4">
+            <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">{c.label}</div>
+            <div className="text-[22px] font-bold text-slate-900">{loading ? "..." : c.value}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Filters */}
+      <div className="flex gap-2 mb-5">
+        {["all", "pending", "confirmed", "cod_pending", "delivered"].map((f) => (
+          <button key={f} onClick={() => setFilter(f)} className="px-4 py-2 rounded-lg text-[12px] font-medium transition-all capitalize" style={{
+            background: filter === f ? "#1D9E75" : "#f8fafc",
+            color: filter === f ? "#fff" : "#64748b",
+            border: filter === f ? "1px solid #1D9E75" : "1px solid #e2e8f0",
+          }}>
+            {f === "cod_pending" ? "COD Pending" : f}
+          </button>
+        ))}
+      </div>
+
+      {/* Table */}
+      <div className="card !p-0 overflow-hidden">
+        {loading ? (
+          <div className="text-center py-16 text-slate-400">Loading orders...</div>
+        ) : orders.length === 0 ? (
+          <div className="text-center py-16">
+            <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-3" style={{ background: "rgba(29,158,117,0.08)" }}>
+              <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="#1D9E75" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+              </svg>
+            </div>
+            <p className="text-[14px] text-slate-500 font-medium">No orders yet</p>
+            <p className="text-[12px] text-slate-400 mt-1">When customers place orders they will appear here.</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-100">
+                  {["Order ID", "Customer", "Items", "Amount", "Payment", "Status", "Time", "Actions"].map((h) => (
+                    <th key={h} className="text-left py-3 px-4 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {orders.map((order) => {
+                  const pb = paymentBadge[order.payment_method] || { bg: "#f5f5f5", color: "#616161" };
+                  const sb = statusBadge[order.payment_status] || { bg: "#f5f5f5", color: "#616161" };
+                  const items = Array.isArray(order.items) ? order.items.map((i: any) => `${i.qty}x ${i.name}`).join(", ") : "";
+                  return (
+                    <tr key={order.id} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
+                      <td className="py-3 px-4 text-[12px] font-mono font-medium text-slate-700">{order.order_reference}</td>
+                      <td className="py-3 px-4 text-[13px] text-slate-600">{formatPhone(order.customer_phone)}</td>
+                      <td className="py-3 px-4 text-[12px] text-slate-500 max-w-[150px] truncate">{items}</td>
+                      <td className="py-3 px-4 text-[13px] font-semibold" style={{ color: "#1D9E75" }}>Rs. {order.total_amount}</td>
+                      <td className="py-3 px-4">
+                        <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase" style={{ background: pb.bg, color: pb.color }}>
+                          {order.payment_method || "—"}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold capitalize" style={{ background: sb.bg, color: sb.color }}>
+                          {order.payment_status}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-[12px] text-slate-400">{timeAgo(order.created_at)}</td>
+                      <td className="py-3 px-4">
+                        {order.delivery_status !== "delivered" && (
+                          <button onClick={() => markDelivered(order.id)} className="text-[11px] font-semibold px-3 py-1.5 rounded-lg transition-all" style={{ background: "rgba(29,158,117,0.08)", color: "#047857" }}>
+                            Mark Delivered
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+    </div>
+  );
+}
