@@ -10,6 +10,7 @@ const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 interface Conversation {
   id: string;
   customer_phone: string;
+  customer_name: string | null;
   status: string;
   last_message_at: string;
   messagecount: number;
@@ -190,14 +191,14 @@ export default function ConversationsPage() {
                 style={{ background: activeId === conv.id ? "#f0fdf4" : "transparent" }}
               >
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-[14px] font-semibold text-slate-800">
-                    {formatPhone(conv.customer_phone)}
+                  <span className="text-[14px] font-semibold text-slate-800 truncate max-w-[180px]">
+                    {conv.customer_name || formatPhone(conv.customer_phone)}
                   </span>
                   <span className="text-[11px] text-slate-400">{timeAgo(conv.last_message_at)}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-[12px] text-slate-500 truncate max-w-[200px]">
-                    {conv.messagecount} messages
+                    {conv.customer_name ? formatPhone(conv.customer_phone) + ' · ' : ''}{conv.messagecount} messages
                   </span>
                   <span
                     className="text-[10px] font-bold px-2 py-0.5 rounded-full"
@@ -234,7 +235,7 @@ export default function ConversationsPage() {
             {/* Chat Header */}
             <div className="px-6 py-4 bg-white border-b border-slate-200 flex items-center justify-between">
               <div>
-                <div className="text-[16px] font-bold text-slate-800">{formatPhone(activeConv?.customer_phone || "")}</div>
+                <div className="text-[16px] font-bold text-slate-800">{activeConv?.customer_name || formatPhone(activeConv?.customer_phone || "")}</div>
                 <div className="text-[12px] text-slate-400">{activeConv?.messagecount} messages &middot; {activeConv?.status}</div>
               </div>
               <div className="flex items-center gap-3">
