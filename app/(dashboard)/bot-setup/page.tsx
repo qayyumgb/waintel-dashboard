@@ -64,6 +64,10 @@ export default function BotSetupPage() {
     codDeliveryCharge: 100,
     codFreeAbove: 1500,
     codMinOrder: 300,
+    hasToken: false,
+    connectionType: "official",
+    connectionStatus: "pending",
+    accessToken: "",
   });
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
@@ -87,9 +91,10 @@ export default function BotSetupPage() {
         setForm((f) => ({
           ...f,
           displayName: bot.display_name || "",
-          industry: bot.system_prompt ? detectIndustry(bot.system_prompt) : "Other",
+          industry: bot.industry || (bot.system_prompt ? detectIndustry(bot.system_prompt) : "Other"),
           businessDescription: bot.system_prompt ? extractDescription(bot.system_prompt) : "",
-          tone: bot.system_prompt ? detectTone(bot.system_prompt) : "Friendly",
+          tone: bot.tone ? bot.tone.charAt(0).toUpperCase() + bot.tone.slice(1) : (bot.system_prompt ? detectTone(bot.system_prompt) : "Friendly"),
+          responseLength: bot.response_length ? bot.response_length.charAt(0).toUpperCase() + bot.response_length.slice(1) : "Medium",
           language: lang,
           businessHours: hours,
           escalationNumber: bot.escalation_number || "+92",
@@ -103,6 +108,9 @@ export default function BotSetupPage() {
           codDeliveryCharge: bot.cod_delivery_charge || 100,
           codFreeAbove: bot.cod_free_above || 1500,
           codMinOrder: bot.cod_min_order || 300,
+          hasToken: bot.hasToken || false,
+          connectionType: bot.connection_type || "official",
+          connectionStatus: bot.connection_status || "pending",
         }));
       } catch {
         setToast({ message: "Failed to load bot config", type: "error" });
@@ -171,6 +179,11 @@ export default function BotSetupPage() {
         cod_delivery_charge: form.codDeliveryCharge,
         cod_free_above: form.codFreeAbove,
         cod_min_order: form.codMinOrder,
+        industry: form.industry.toLowerCase(),
+        tone: form.tone.toLowerCase(),
+        response_length: form.responseLength.toLowerCase(),
+        connection_type: form.connectionType,
+        ...(form.accessToken ? { meta_access_token: form.accessToken } : {}),
       });
       setToast({ message: "Bot configuration saved!", type: "success" });
     } catch {
@@ -342,21 +355,62 @@ export default function BotSetupPage() {
       </div>
 
       {/* Section 5 — WhatsApp Connection */}
-      <div className="card mb-8">
+      <div className="card mb-5">
         <h2 className="text-[16px] font-bold text-slate-800 mb-5 flex items-center gap-2">
           <span className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold text-white" style={{ background: "#1D9E75" }}>5</span>
           WhatsApp Connection
         </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-          <div>
-            <label className="form-label">Phone Number ID</label>
-            <input className="form-input !bg-slate-100 !text-slate-500" value={form.phoneNumberId} readOnly />
-          </div>
-          <div>
-            <label className="form-label">Connection Status</label>
-            <div className="mt-2"><span className="badge-active">Connected</span></div>
-          </div>
+
+        {/* Tabs */}
+        <div className="flex gap-2 mb-5">
+          <button onClick={() => updateField("connectionType", "official")} className="flex-1 py-3 rounded-xl text-[13px] font-medium transition-all" style={{ background: form.connectionType === "official" ? "#1D9E75" : "#f8fafc", color: form.connectionType === "official" ? "#fff" : "#64748b", border: form.connectionType === "official" ? "1px solid #1D9E75" : "1px solid #e2e8f0" }}>
+            Official API
+          </button>
+          <button onClick={() => updateField("connectionType", "quickconnect")} className="flex-1 py-3 rounded-xl text-[13px] font-medium transition-all" style={{ background: form.connectionType === "quickconnect" ? "#1D9E75" : "#f8fafc", color: form.connectionType === "quickconnect" ? "#fff" : "#64748b", border: form.connectionType === "quickconnect" ? "1px solid #1D9E75" : "1px solid #e2e8f0" }}>
+            Quick Connect
+          </button>
         </div>
+
+        {form.connectionType === "official" ? (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="form-label">Phone Number ID</label>
+                <input className="form-input !bg-slate-100 !text-slate-500" value={form.phoneNumberId} readOnly />
+              </div>
+              <div>
+                <label className="form-label">Connection Status</label>
+                <div className="mt-2">
+                  {form.connectionStatus === "connected" ? (
+                    <span className="badge-active">Connected</span>
+                  ) : form.connectionStatus === "pending" ? (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-semibold" style={{ background: "#fef3c7", color: "#92400e" }}>
+                      <span className="w-2 h-2 rounded-full bg-amber-400" /> Pending setup
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-semibold" style={{ background: "#fef2f2", color: "#b91c1c" }}>
+                      <span className="w-2 h-2 rounded-full bg-red-400" /> Disconnected
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+            <div>
+              <label className="form-label">Access Token</label>
+              <div className="relative">
+                <input type="password" className="form-input !pr-20" value={form.accessToken} onChange={(e) => updateField("accessToken", e.target.value)} placeholder="Paste your Meta permanent access token" />
+                {form.hasToken && !form.accessToken && (
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-bold px-2 py-0.5 rounded-full" style={{ background: "#ecfdf5", color: "#047857" }}>Token saved {"\u2713"}</span>
+                )}
+              </div>
+            </div>
+            <div className="p-3 rounded-xl text-[12px]" style={{ background: "#f0fdf4", border: "1px solid #a7f3d0", color: "#047857" }}>
+              Need help? We can set up your WhatsApp connection for Rs. 2,000 one-time fee. Contact: support@waintel.ai
+            </div>
+          </div>
+        ) : (
+          <QuickConnectPanel botId={BOT_ID} />
+        )}
       </div>
 
       {/* Section 6 — Payment Settings */}
@@ -446,6 +500,111 @@ export default function BotSetupPage() {
       </button>
 
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+    </div>
+  );
+}
+
+// Quick Connect QR Panel
+function QuickConnectPanel({ botId }: { botId: string }) {
+  const [qcStatus, setQcStatus] = useState<string>("idle");
+  const [qrCode, setQrCode] = useState<string | null>(null);
+  const [phone, setPhone] = useState<string | null>(null);
+  const [polling, setPolling] = useState(false);
+
+  const startConnect = async () => {
+    setQcStatus("connecting");
+    try {
+      await axios.post(`${API}/api/bots/${botId}/quickconnect/start`);
+      setPolling(true);
+    } catch {
+      setQcStatus("error");
+    }
+  };
+
+  const disconnect = async () => {
+    try {
+      await axios.post(`${API}/api/bots/${botId}/quickconnect/disconnect`);
+      setQcStatus("idle");
+      setQrCode(null);
+      setPhone(null);
+    } catch { /* silent */ }
+  };
+
+  // Poll for QR/status
+  useEffect(() => {
+    if (!polling || !botId) return;
+    const interval = setInterval(async () => {
+      try {
+        const res = await axios.get(`${API}/api/bots/${botId}/quickconnect/qr`);
+        if (res.data.status === "qr_ready" && res.data.qrCode) {
+          setQcStatus("qr_ready");
+          setQrCode(res.data.qrCode);
+        } else if (res.data.status === "connected") {
+          setQcStatus("connected");
+          setPhone(res.data.phone);
+          setQrCode(null);
+          setPolling(false);
+        } else if (res.data.status === "connecting") {
+          setQcStatus("connecting");
+        }
+      } catch { /* silent */ }
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [polling, botId]);
+
+  if (qcStatus === "connected") {
+    return (
+      <div className="text-center py-6">
+        <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-3" style={{ background: "rgba(16,185,129,0.1)" }}>
+          <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="#10b981" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+        </div>
+        <p className="text-[16px] font-bold text-slate-800 mb-1">WhatsApp Connected!</p>
+        {phone && <p className="text-[13px] text-slate-500 mb-1">Number: +{phone}</p>}
+        <p className="text-[12px] text-slate-400 mb-4">Your bot is live on your existing WhatsApp number.</p>
+        <button onClick={disconnect} className="btn-danger text-[12px] !py-1.5 !px-4">Disconnect</button>
+      </div>
+    );
+  }
+
+  if (qcStatus === "qr_ready" && qrCode) {
+    return (
+      <div className="text-center py-4">
+        <p className="text-[14px] font-bold text-slate-800 mb-3">Scan with WhatsApp</p>
+        <img src={qrCode} alt="QR Code" className="mx-auto mb-4 rounded-xl" style={{ width: 220, height: 220 }} />
+        <div className="text-[12px] text-slate-500 space-y-1 mb-4">
+          <p>1. Open WhatsApp on your phone</p>
+          <p>2. Settings → Linked Devices</p>
+          <p>3. Link a Device → scan this code</p>
+        </div>
+        <button onClick={startConnect} className="btn-secondary text-[12px]">Refresh QR</button>
+      </div>
+    );
+  }
+
+  if (qcStatus === "connecting") {
+    return (
+      <div className="text-center py-8">
+        <div className="w-8 h-8 border-2 border-slate-200 border-t-[#1D9E75] rounded-full animate-spin mx-auto mb-4" />
+        <p className="text-[14px] text-slate-500">Generating QR code...</p>
+      </div>
+    );
+  }
+
+  // idle / error
+  return (
+    <div className="text-center py-6">
+      <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: "rgba(29,158,117,0.08)" }}>
+        <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="#1D9E75" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+        </svg>
+      </div>
+      <p className="text-[15px] font-bold text-slate-800 mb-2">Connect your existing WhatsApp</p>
+      <p className="text-[12px] text-slate-400 mb-1">Your number stays the same. No Meta registration needed.</p>
+      <p className="text-[12px] text-slate-400 mb-5">Setup takes 2 minutes.</p>
+      {qcStatus === "error" && <p className="text-[12px] text-red-500 mb-3">Connection failed. Try again.</p>}
+      <button onClick={startConnect} className="btn-primary">Start Quick Connect →</button>
     </div>
   );
 }
