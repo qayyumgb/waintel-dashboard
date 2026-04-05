@@ -34,10 +34,21 @@ function timeAgo(date: string): string {
 }
 
 function formatPhone(phone: string): string {
-  if (phone.startsWith("92") && phone.length >= 12) {
-    return `0${phone.slice(2, 5)}-${phone.slice(5)}`;
+  if (!phone) return "";
+  const clean = phone.replace(/\D/g, "");
+  if (clean.startsWith("92") && clean.length === 12) {
+    return "0" + clean.slice(2, 5) + "-" + clean.slice(5, 8) + "-" + clean.slice(8);
+  }
+  if (clean.startsWith("0") && clean.length === 11) {
+    return clean.slice(0, 4) + "-" + clean.slice(4, 7) + "-" + clean.slice(7);
   }
   return phone;
+}
+
+function isRealPhone(phone: string): boolean {
+  if (!phone) return false;
+  const clean = phone.replace(/\D/g, "");
+  return clean.length >= 10 && /^\d+$/.test(clean);
 }
 
 export default function ConversationsPage() {
@@ -156,8 +167,22 @@ export default function ConversationsPage() {
     }
   };
 
+  const deleteConversation = async (convId: string) => {
+    if (!confirm("Delete this conversation and all its messages?")) return;
+    try {
+      await axios.delete(`${API}/api/conversations/${convId}`);
+      setActiveId(null);
+      setMessages([]);
+      fetchConversations();
+      setToast({ message: "Conversation deleted", type: "success" });
+    } catch {
+      setToast({ message: "Failed to delete conversation", type: "error" });
+    }
+  };
+
   const filtered = conversations.filter((c) =>
-    c.customer_phone.includes(search) || formatPhone(c.customer_phone).includes(search)
+    c.customer_phone.includes(search) || formatPhone(c.customer_phone).includes(search) ||
+    (c.customer_name && c.customer_name.toLowerCase().includes(search.toLowerCase()))
   );
 
   const bubbleColor = (role: string) => {
@@ -190,15 +215,18 @@ export default function ConversationsPage() {
                 className="w-full text-left px-4 py-3 border-b border-slate-50 transition-colors hover:bg-slate-50"
                 style={{ background: activeId === conv.id ? "#f0fdf4" : "transparent" }}
               >
-                <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center justify-between mb-0.5">
                   <span className="text-[14px] font-semibold text-slate-800 truncate max-w-[180px]">
                     {conv.customer_name || formatPhone(conv.customer_phone)}
                   </span>
                   <span className="text-[11px] text-slate-400">{timeAgo(conv.last_message_at)}</span>
                 </div>
+                {isRealPhone(conv.customer_phone) && conv.customer_name && (
+                  <div className="text-[11px] text-slate-400 mb-0.5">{formatPhone(conv.customer_phone)}</div>
+                )}
                 <div className="flex items-center justify-between">
                   <span className="text-[12px] text-slate-500 truncate max-w-[200px]">
-                    {conv.customer_name ? formatPhone(conv.customer_phone) + ' · ' : ''}{conv.messagecount} messages
+                    {conv.messagecount} messages
                   </span>
                   <span
                     className="text-[10px] font-bold px-2 py-0.5 rounded-full"
@@ -235,10 +263,37 @@ export default function ConversationsPage() {
             {/* Chat Header */}
             <div className="px-6 py-4 bg-white border-b border-slate-200 flex items-center justify-between">
               <div>
-                <div className="text-[16px] font-bold text-slate-800">{activeConv?.customer_name || formatPhone(activeConv?.customer_phone || "")}</div>
-                <div className="text-[12px] text-slate-400">{activeConv?.messagecount} messages &middot; {activeConv?.status}</div>
+                <div className="text-[15px] font-semibold text-slate-800">
+                  {activeConv?.customer_name || formatPhone(activeConv?.customer_phone || "")}
+                </div>
+                {isRealPhone(activeConv?.customer_phone || "") && (
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <span className="text-[12px] text-slate-400">{formatPhone(activeConv!.customer_phone)}</span>
+                    <button
+                      className="text-slate-300 hover:text-slate-500 transition-colors"
+                      title="Copy number"
+                      onClick={() => { navigator.clipboard.writeText(activeConv!.customer_phone); setToast({ message: "Number copied!", type: "success" }); }}
+                    >
+                      <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                    </button>
+                  </div>
+                )}
+                <div className="text-[11px] text-slate-400 mt-0.5">
+                  {activeConv?.messagecount} messages &middot; {activeConv?.status}
+                </div>
               </div>
               <div className="flex items-center gap-3">
+                <button
+                  className="text-[11px] text-slate-400 hover:text-red-500 transition-colors px-2 py-1"
+                  title="Delete conversation"
+                  onClick={() => deleteConversation(activeConv!.id)}
+                >
+                  <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
                 <span
                   className="text-[11px] font-bold px-3 py-1.5 rounded-full"
                   style={{
