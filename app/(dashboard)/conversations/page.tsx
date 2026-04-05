@@ -48,7 +48,16 @@ function formatPhone(phone: string): string {
 function isRealPhone(phone: string): boolean {
   if (!phone) return false;
   const clean = phone.replace(/\D/g, "");
-  return clean.length >= 10 && /^\d+$/.test(clean);
+  // Must be digits, 10-12 chars, and start with country code or 0
+  // Exclude LID numbers (13+ digits, don't start with known country codes)
+  if (clean.length > 12) return false;
+  if (clean.length < 10) return false;
+  // Pakistani numbers: 92XXXXXXXXXX or 0XXXXXXXXXX
+  if (clean.startsWith("92") && clean.length === 12) return true;
+  if (clean.startsWith("0") && clean.length === 11) return true;
+  // Other international: 10-12 digits starting with 1-9
+  if (clean.length >= 10 && clean.length <= 12 && /^[1-9]/.test(clean)) return true;
+  return false;
 }
 
 export default function ConversationsPage() {
