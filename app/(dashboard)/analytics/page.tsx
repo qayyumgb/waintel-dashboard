@@ -12,6 +12,12 @@ interface Analytics {
   voiceMessages: number;
   textMessages: number;
   avgResponseSeconds: number;
+  followUpStats?: {
+    totalScheduled: number;
+    totalSent: number;
+    totalCancelled: number;
+    recoveryRate: string;
+  };
 }
 
 export default function AnalyticsPage() {
@@ -131,6 +137,43 @@ export default function AnalyticsPage() {
               )}
             </div>
           </div>
+
+          {/* Cart Recovery */}
+          {data.followUpStats && (
+            <div className="card mt-6">
+              <h3 className="text-[15px] font-bold text-slate-800 mb-5 flex items-center gap-2">
+                <span>{"\uD83C\uDFAF"}</span> Cart Recovery Engine
+              </h3>
+              <div className="grid grid-cols-3 gap-4 mb-5">
+                <div className="text-center p-3 rounded-xl" style={{ background: "#f0fdf4" }}>
+                  <div className="text-[22px] font-bold text-slate-900">{data.followUpStats.totalScheduled}</div>
+                  <div className="text-[11px] text-slate-500 font-medium">Scheduled</div>
+                </div>
+                <div className="text-center p-3 rounded-xl" style={{ background: "#eff6ff" }}>
+                  <div className="text-[22px] font-bold text-slate-900">{data.followUpStats.totalSent}</div>
+                  <div className="text-[11px] text-slate-500 font-medium">Sent</div>
+                </div>
+                <div className="text-center p-3 rounded-xl" style={{ background: "#fef3c7" }}>
+                  <div className="text-[22px] font-bold text-slate-900">{data.followUpStats.totalCancelled}</div>
+                  <div className="text-[11px] text-slate-500 font-medium">Recovered</div>
+                </div>
+              </div>
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[12px] font-semibold text-slate-500">Recovery Rate</span>
+                  <span className="text-[12px] font-bold" style={{
+                    color: parseInt(data.followUpStats.recoveryRate) > 20 ? "#047857" : parseInt(data.followUpStats.recoveryRate) > 10 ? "#92400e" : "#b91c1c"
+                  }}>{data.followUpStats.recoveryRate}</span>
+                </div>
+                <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
+                  <div className="h-full rounded-full transition-all duration-500" style={{
+                    width: data.followUpStats.recoveryRate,
+                    background: parseInt(data.followUpStats.recoveryRate) > 20 ? "linear-gradient(135deg, #1D9E75, #0F6E56)" : parseInt(data.followUpStats.recoveryRate) > 10 ? "#f59e0b" : "#ef4444",
+                  }} />
+                </div>
+              </div>
+            </div>
+          )}
         </>
       )}
     </div>
