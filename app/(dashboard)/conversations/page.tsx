@@ -263,8 +263,26 @@ export default function ConversationsPage() {
                       className="max-w-[70%] px-4 py-3 rounded-2xl text-[14px] leading-relaxed"
                       style={{ background: style.bg, color: style.text }}
                     >
-                      {msg.voice_transcription && <span className="mr-1">&#x1F3A4;</span>}
-                      {msg.voice_transcription ? <em>{msg.content}</em> : msg.content}
+                      {msg.content.startsWith("[Image") ? (
+                        <span className="flex items-center gap-2">
+                          <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} className="shrink-0 opacity-60">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0022.5 18.75V5.25A2.25 2.25 0 0020.25 3H3.75A2.25 2.25 0 001.5 5.25v13.5A2.25 2.25 0 003.75 21z" />
+                          </svg>
+                          <span>
+                            <em className="text-slate-400">Photo</em>
+                            {msg.content.replace("[Image received]", "").replace("[Image] ", "") && (
+                              <span className="ml-1">&ldquo;{msg.content.replace("[Image received]", "").replace("[Image] ", "")}&rdquo;</span>
+                            )}
+                          </span>
+                        </span>
+                      ) : msg.voice_transcription ? (
+                        <span className="flex items-start gap-2">
+                          <span className="shrink-0">&#x1F3A4;</span>
+                          <span><em className="text-slate-400">Voice:</em> <em>{msg.content}</em></span>
+                        </span>
+                      ) : (
+                        msg.content
+                      )}
                     </div>
                     <div className="flex items-center gap-2 mt-1 px-1">
                       <span className="text-[10px] text-slate-400">
