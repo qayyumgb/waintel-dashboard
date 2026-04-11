@@ -32,10 +32,27 @@ interface HotelStats {
   popularRoomType: string;
 }
 
+interface WeeklyStats {
+  days: Array<{
+    report_date: string;
+    total_conversations: number;
+    orders_placed: number;
+    revenue: string;
+  }>;
+  totalRevenue: number;
+  totalOrders: number;
+  totalConversations: number;
+  avgDailyConversations: number;
+  avgDailyRevenue: number;
+  bestDay: { date: string; revenue: number; orders: number } | null;
+  topQuestionOverall: string | null;
+}
+
 export default function AnalyticsPage() {
   const { botId } = useAuth();
   const [data, setData] = useState<Analytics | null>(null);
   const [hotelStats, setHotelStats] = useState<HotelStats | null>(null);
+  const [weekly, setWeekly] = useState<WeeklyStats | null>(null);
   const [industry, setIndustry] = useState<string>("");
   const [loading, setLoading] = useState(true);
 
@@ -44,6 +61,7 @@ export default function AnalyticsPage() {
     Promise.all([
       axios.get(`${API}/api/stats/analytics?botId=${botId}`).then((r) => setData(r.data)).catch(() => {}),
       axios.get(`${API}/api/bots/${botId}`).then((r) => setIndustry((r.data.industry || "").toLowerCase())).catch(() => {}),
+      axios.get(`${API}/api/reports/stats?botId=${botId}&days=7`).then((r) => setWeekly(r.data)).catch(() => {}),
     ]).finally(() => setLoading(false));
   }, [botId]);
 
@@ -134,6 +152,83 @@ export default function AnalyticsPage() {
               <div className="text-[12px] text-slate-400 mt-1">{voicePct}% of total</div>
             </div>
           </div>
+
+          {/* Weekly Performance (Business Pulse) */}
+          {weekly && weekly.days.length > 0 && (
+            <div className="mb-8">
+              <h2 className="text-[16px] font-bold text-slate-800 mb-4 flex items-center gap-2">
+                📊 Weekly Performance — Last 7 Days
+              </h2>
+
+              <div className="card mb-4">
+                <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-3">Daily Breakdown</div>
+                {(() => {
+                  const maxRev = Math.max(...weekly.days.map((d) => Number(d.revenue || 0)), 1);
+                  return (
+                    <div className="space-y-2.5">
+                      {weekly.days.map((d) => {
+                        const rev = Number(d.revenue || 0);
+                        const dateLabel = new Date(d.report_date).toLocaleDateString("en-PK", { weekday: "short", day: "numeric", month: "short" });
+                        return (
+                          <div key={d.report_date} className="flex items-center gap-3">
+                            <span className="text-[11px] text-slate-500 w-[90px] shrink-0">{dateLabel}</span>
+                            <div className="flex-1 h-[26px] rounded-lg overflow-hidden" style={{ background: "#f1f5f9" }}>
+                              <div
+                                className="h-full rounded-lg flex items-center px-3 text-[11px] font-bold text-white transition-all duration-500"
+                                style={{
+                                  width: `${Math.max((rev / maxRev) * 100, 10)}%`,
+                                  background: "linear-gradient(135deg, #1D9E75, #0F6E56)",
+                                }}
+                              >
+                                Rs. {rev.toLocaleString("en-PK")}
+                              </div>
+                            </div>
+                            <span className="text-[11px] text-slate-400 w-[80px] text-right shrink-0">
+                              {d.orders_placed} orders
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="p-4 rounded-xl" style={{ background: "#e8f5e9" }}>
+                  <div className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: "#1b5e20" }}>Best Day</div>
+                  <div className="text-[16px] font-bold" style={{ color: "#1b5e20" }}>
+                    {weekly.bestDay
+                      ? new Date(weekly.bestDay.date).toLocaleDateString("en-PK", { weekday: "long" })
+                      : "—"}
+                  </div>
+                  <div className="text-[12px]" style={{ color: "#1b5e20", opacity: 0.8 }}>
+                    {weekly.bestDay ? `Rs. ${weekly.bestDay.revenue.toLocaleString("en-PK")}` : ""}
+                  </div>
+                </div>
+                <div className="p-4 rounded-xl" style={{ background: "#eff6ff" }}>
+                  <div className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: "#1d4ed8" }}>Total Orders</div>
+                  <div className="text-[16px] font-bold" style={{ color: "#1d4ed8" }}>{weekly.totalOrders} this week</div>
+                  <div className="text-[12px]" style={{ color: "#1d4ed8", opacity: 0.8 }}>
+                    avg {Math.round(weekly.totalOrders / Math.max(weekly.days.length, 1))}/day
+                  </div>
+                </div>
+                <div className="p-4 rounded-xl" style={{ background: "rgba(29,158,117,0.08)" }}>
+                  <div className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: "#047857" }}>Total Revenue</div>
+                  <div className="text-[16px] font-bold" style={{ color: "#047857" }}>Rs. {weekly.totalRevenue.toLocaleString("en-PK")}</div>
+                  <div className="text-[12px]" style={{ color: "#047857", opacity: 0.8 }}>
+                    avg Rs. {weekly.avgDailyRevenue.toLocaleString("en-PK")}/day
+                  </div>
+                </div>
+              </div>
+
+              {weekly.topQuestionOverall && (
+                <div className="mt-3 p-3 rounded-xl text-[12px]" style={{ background: "#fffbeb", border: "1px solid #fde68a", color: "#92400e" }}>
+                  💡 Most common customer question this week: <b>{weekly.topQuestionOverall}</b>
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Messages Per Day */}

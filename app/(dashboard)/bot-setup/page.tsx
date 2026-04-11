@@ -100,8 +100,15 @@ export default function BotSetupPage() {
     woocommerceUrl: "",
     woocommerceKey: "",
     woocommerceSecret: "",
+    // Business Pulse
+    dailyReportEnabled: false,
+    dailyReportTime: "08:00",
+    dailyReportPhone: "",
+    dailyReportEmail: "",
+    dailyReportChannel: "whatsapp" as "whatsapp" | "email" | "both",
   });
   const [saving, setSaving] = useState(false);
+  const [sendingTestReport, setSendingTestReport] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
   // Fetch current bot config on mount
@@ -165,6 +172,11 @@ export default function BotSetupPage() {
           woocommerceUrl:     bot.woocommerce_url    || "",
           woocommerceKey:     bot.woocommerce_key    || "",
           woocommerceSecret:  bot.woocommerce_secret || "",
+          dailyReportEnabled: bot.daily_report_enabled || false,
+          dailyReportTime:    bot.daily_report_time  || "08:00",
+          dailyReportPhone:   bot.daily_report_phone || "",
+          dailyReportEmail:   bot.daily_report_email || "",
+          dailyReportChannel: (bot.daily_report_channel as "whatsapp" | "email" | "both") || "whatsapp",
         }));
 
       } catch {
@@ -267,6 +279,12 @@ export default function BotSetupPage() {
           woocommerce_key:      form.woocommerceKey,
           woocommerce_secret:   form.woocommerceSecret,
         } : {}),
+        // Business Pulse (always sent)
+        daily_report_enabled: form.dailyReportEnabled,
+        daily_report_time:    form.dailyReportTime,
+        daily_report_phone:   form.dailyReportPhone,
+        daily_report_email:   form.dailyReportEmail,
+        daily_report_channel: form.dailyReportChannel,
       });
       setToast({ message: "Bot configuration saved!", type: "success" });
       window.dispatchEvent(new CustomEvent("botIndustryChanged", { detail: { industry: form.industry.toLowerCase() } }));
@@ -579,11 +597,143 @@ export default function BotSetupPage() {
         </div>
       </div>
 
-      {/* Section 7 — Hotel Configuration (hotel industry only) */}
+      {/* Section 7 — Business Pulse (universal) */}
+      <div className="card mb-5">
+        <h2 className="text-[16px] font-bold text-slate-800 mb-5 flex items-center gap-2">
+          <span className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold text-white" style={{ background: "#1D9E75" }}>7</span>
+          📊 Business Pulse — Daily Report
+        </h2>
+
+        <div className="mb-4 flex items-center justify-between p-3 rounded-xl" style={{ background: "rgba(29,158,117,0.04)", border: "1px solid #e5e7eb" }}>
+          <div>
+            <div className="text-[13px] font-semibold text-slate-800">Send daily WhatsApp report</div>
+            <div className="text-[11px] text-slate-500">Every morning at your chosen time — summary + AI insight</div>
+          </div>
+          <label className="inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              className="sr-only peer"
+              checked={form.dailyReportEnabled}
+              onChange={(e) => updateField("dailyReportEnabled", e.target.checked)}
+            />
+            <div className="relative w-11 h-6 bg-slate-200 peer-checked:bg-[#1D9E75] rounded-full transition-colors">
+              <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${form.dailyReportEnabled ? "translate-x-5" : ""}`} />
+            </div>
+          </label>
+        </div>
+
+        {form.dailyReportEnabled && (
+          <>
+            <div className="mb-4">
+              <label className="form-label">Delivery Channel</label>
+              <div className="grid grid-cols-3 gap-2">
+                {([
+                  { value: "whatsapp", label: "📱 WhatsApp", desc: "via bot's number" },
+                  { value: "email",    label: "📧 Email",    desc: "requires SMTP" },
+                  { value: "both",     label: "📱 + 📧 Both", desc: "belt and suspenders" },
+                ] as const).map((c) => (
+                  <button
+                    key={c.value}
+                    type="button"
+                    onClick={() => updateField("dailyReportChannel", c.value)}
+                    className="px-3 py-3 rounded-xl text-[12px] font-medium transition-all text-left"
+                    style={{
+                      background: form.dailyReportChannel === c.value ? "rgba(29,158,117,0.1)" : "#f8fafc",
+                      border: form.dailyReportChannel === c.value ? "2px solid #1D9E75" : "2px solid #e2e8f0",
+                      color: form.dailyReportChannel === c.value ? "#047857" : "#64748b",
+                    }}
+                  >
+                    <div className="font-semibold">{c.label}</div>
+                    <div className="text-[10px] mt-0.5 opacity-70">{c.desc}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="mb-4">
+              <label className="form-label">Report Time (Pakistan time)</label>
+              <input
+                type="time"
+                className="form-input max-w-[200px]"
+                value={form.dailyReportTime}
+                onChange={(e) => updateField("dailyReportTime", e.target.value)}
+              />
+            </div>
+
+            {(form.dailyReportChannel === "whatsapp" || form.dailyReportChannel === "both") && (
+              <div className="mb-4">
+                <label className="form-label">WhatsApp number</label>
+                <input
+                  className="form-input"
+                  value={form.dailyReportPhone}
+                  onChange={(e) => updateField("dailyReportPhone", e.target.value)}
+                  placeholder="923001234567 or 03001234567"
+                />
+                <p className="text-[11px] text-slate-400 mt-1">
+                  Leave blank to fall back to the escalation number. Report is sent via your bot's WhatsApp (requires active connection).
+                </p>
+              </div>
+            )}
+
+            {(form.dailyReportChannel === "email" || form.dailyReportChannel === "both") && (
+              <div className="mb-4">
+                <label className="form-label">Email address</label>
+                <input
+                  type="email"
+                  className="form-input"
+                  value={form.dailyReportEmail}
+                  onChange={(e) => updateField("dailyReportEmail", e.target.value)}
+                  placeholder="owner@example.com"
+                />
+                <p className="text-[11px] text-slate-400 mt-1">
+                  Requires SMTP configuration on the server (<code>SMTP_HOST</code>, <code>SMTP_USER</code>, <code>SMTP_PASS</code> env vars).
+                </p>
+              </div>
+            )}
+
+            <div className="mb-4">
+              <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2">Preview</div>
+              <pre className="text-[11px] bg-slate-50 border border-slate-200 rounded-xl p-3 whitespace-pre-wrap font-mono text-slate-700">{`📊 Daily Business Report
+${form.displayName || "Your Business"}
+📅 Monday, 12 April
+━━━━━━━━━━━━━━━━━
+💬 Conversations: 24 (8 new)
+🛒 Orders: 8 — Rs. 14,400
+❓ Top: delivery charges, menu prices
+⏰ Busiest: 7pm-8pm
+💡 Customers ask about delivery...`}</pre>
+            </div>
+
+            <button
+              type="button"
+              className="btn-secondary text-[12px] inline-flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+              disabled={sendingTestReport}
+              onClick={async () => {
+                setSendingTestReport(true);
+                try {
+                  const r = await axios.post(`${API}/api/reports/send-now`, { botId: BOT_ID });
+                  setToast({ message: r.data.message || "Test report sent!", type: "success" });
+                } catch (err: any) {
+                  setToast({ message: err.response?.data?.error || "Failed to send report", type: "error" });
+                } finally {
+                  setSendingTestReport(false);
+                }
+              }}
+            >
+              {sendingTestReport && (
+                <span className="inline-block w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" aria-hidden />
+              )}
+              {sendingTestReport ? "Sending…" : "Send Test Report Now"}
+            </button>
+          </>
+        )}
+      </div>
+
+      {/* Section 8 — Hotel Configuration (hotel industry only) */}
       {form.industry.toLowerCase() === "hotel" && (
         <div className="card mb-5">
           <h2 className="text-[16px] font-bold text-slate-800 mb-5 flex items-center gap-2">
-            <span className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold text-white" style={{ background: "#1D9E75" }}>7</span>
+            <span className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold text-white" style={{ background: "#1D9E75" }}>8</span>
             Hotel Configuration
           </h2>
 
@@ -652,11 +802,11 @@ export default function BotSetupPage() {
         </div>
       )}
 
-      {/* Section 8 — Store Configuration (ecommerce industry only) */}
+      {/* Section 9 — Store Configuration (ecommerce industry only) */}
       {(form.industry.toLowerCase() === "e-commerce" || form.industry.toLowerCase() === "ecommerce") && (
         <div className="card mb-5">
           <h2 className="text-[16px] font-bold text-slate-800 mb-5 flex items-center gap-2">
-            <span className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold text-white" style={{ background: "#1D9E75" }}>8</span>
+            <span className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold text-white" style={{ background: "#1D9E75" }}>9</span>
             Store Configuration
           </h2>
 
@@ -695,7 +845,7 @@ export default function BotSetupPage() {
       {(form.industry.toLowerCase() === "e-commerce" || form.industry.toLowerCase() === "ecommerce") && (
         <div className="card mb-5">
           <h2 className="text-[16px] font-bold text-slate-800 mb-5 flex items-center gap-2">
-            <span className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold text-white" style={{ background: "#1D9E75" }}>9</span>
+            <span className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold text-white" style={{ background: "#1D9E75" }}>10</span>
             Platform Integration
           </h2>
 
