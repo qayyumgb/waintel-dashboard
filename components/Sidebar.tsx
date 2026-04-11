@@ -3,15 +3,31 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
+import { useEffect, useState } from "react";
+import axios from "axios";
 
-const navItems = [
+const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+
+const BASE_NAV = [
   { href: "/", label: "Dashboard", icon: HomeIcon },
   { href: "/bot-setup", label: "Bot Setup", icon: SettingsIcon },
   { href: "/knowledge", label: "Knowledge Base", icon: BookIcon },
   { href: "/conversations", label: "Conversations", icon: ChatIcon },
+];
+
+const ORDER_NAV = [
   { href: "/orders", label: "Orders", icon: BagIcon },
+];
+
+const HOTEL_NAV = [
+  { href: "/bookings", label: "Bookings", icon: CalendarIcon },
+  { href: "/rooms", label: "Rooms", icon: RoomIcon },
+];
+
+const BOTTOM_NAV = [
   { href: "/analytics", label: "Analytics", icon: ChartIcon },
   { href: "/pricing", label: "Billing", icon: CardIcon },
+  { href: "/onboarding", label: "Setup Wizard", icon: WizardIcon },
 ];
 
 export default function Sidebar() {
@@ -20,6 +36,31 @@ export default function Sidebar() {
   const userName = session?.user?.name || "My Business";
   const userEmail = session?.user?.email || "";
   const initials = userName.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2);
+  const botId = (session as any)?.botId as string | undefined;
+  const [industry, setIndustry] = useState<string>("");
+
+  useEffect(() => {
+    if (!botId) return;
+    axios.get(`${API}/api/bots/${botId}`)
+      .then((res) => setIndustry((res.data.industry || "").toLowerCase()))
+      .catch(() => {});
+  }, [botId]);
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent<{ industry: string }>).detail;
+      if (detail?.industry) setIndustry(detail.industry);
+    };
+    window.addEventListener("botIndustryChanged", handler);
+    return () => window.removeEventListener("botIndustryChanged", handler);
+  }, []);
+
+  const isHotel = industry === "hotel";
+  const navItems = [
+    ...BASE_NAV,
+    ...(isHotel ? HOTEL_NAV : ORDER_NAV),
+    ...BOTTOM_NAV,
+  ];
 
   return (
     <aside
@@ -47,7 +88,12 @@ export default function Sidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-3 mt-4 flex flex-col gap-1">
+      <nav className="flex-1 px-3 mt-4 flex flex-col gap-1 overflow-y-auto overflow-x-hidden min-h-0"
+        style={{
+          scrollbarWidth: "thin",
+          scrollbarColor: "rgba(255,255,255,0.2) transparent",
+        }}
+      >
         {navItems.map((item) => {
           const isActive = pathname === item.href;
           return (
@@ -81,23 +127,6 @@ export default function Sidebar() {
           );
         })}
       </nav>
-
-      {/* Onboarding CTA */}
-      <a
-        href="/onboarding"
-        className="mx-4 mb-3 p-4 rounded-xl flex items-center gap-3 transition-all hover:scale-[1.02]"
-        style={{ background: "rgba(255,255,255,0.12)", backdropFilter: "blur(8px)" }}
-      >
-        <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "rgba(255,255,255,0.2)" }}>
-          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-          </svg>
-        </div>
-        <div>
-          <div className="text-white text-[12px] font-semibold">Setup Wizard</div>
-          <div className="text-white/50 text-[10px]">Get started in 10 min</div>
-        </div>
-      </a>
 
       {/* Info Box */}
       <div className="mx-4 mb-4 p-4 rounded-xl" style={{ background: "rgba(255,255,255,0.1)", backdropFilter: "blur(8px)" }}>
@@ -184,6 +213,30 @@ function BagIcon() {
   return (
     <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+    </svg>
+  );
+}
+
+function RoomIcon() {
+  return (
+    <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1" />
+    </svg>
+  );
+}
+
+function WizardIcon() {
+  return (
+    <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+    </svg>
+  );
+}
+
+function CalendarIcon() {
+  return (
+    <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
     </svg>
   );
 }

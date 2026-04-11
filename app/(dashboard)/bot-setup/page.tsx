@@ -5,6 +5,14 @@ import axios from "axios";
 import Toast from "@/components/Toast";
 import { useAuth } from "@/lib/useAuth";
 
+const HOTEL_REGIONS = [
+  "Gilgit-Baltistan",
+  "Khyber Pakhtunkhwa",
+  "Punjab",
+  "Azad Kashmir",
+  "Other",
+];
+
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
 const INDUSTRIES = ["Restaurant", "Pharmacy", "Real Estate", "Hotel", "E-commerce", "Education", "Other"];
@@ -68,6 +76,19 @@ export default function BotSetupPage() {
     connectionType: "official",
     connectionStatus: "pending",
     accessToken: "",
+    // Hotel fields
+    hotelName: "",
+    hotelCancellationPolicy: "",
+    hotelMapsUrl: "",
+    hotelLocation: "",
+    hotelRegion: "Gilgit-Baltistan",
+    hotelCheckinTime: "2:00 PM",
+    hotelCheckoutTime: "12:00 PM",
+    hotelAddress: "",
+    hotelWifiName: "",
+    hotelWifiPassword: "",
+    hotelParkingInfo: "",
+    hotelAmenities: "",
   });
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
@@ -91,7 +112,7 @@ export default function BotSetupPage() {
         setForm((f) => ({
           ...f,
           displayName: bot.display_name || "",
-          industry: bot.industry || (bot.system_prompt ? detectIndustry(bot.system_prompt) : "Other"),
+          industry: INDUSTRIES.find((i) => i.toLowerCase() === (bot.industry || "").toLowerCase()) || (bot.system_prompt ? detectIndustry(bot.system_prompt) : "Other"),
           businessDescription: bot.system_prompt ? extractDescription(bot.system_prompt) : "",
           tone: bot.tone ? bot.tone.charAt(0).toUpperCase() + bot.tone.slice(1) : (bot.system_prompt ? detectTone(bot.system_prompt) : "Friendly"),
           responseLength: bot.response_length ? bot.response_length.charAt(0).toUpperCase() + bot.response_length.slice(1) : "Medium",
@@ -111,7 +132,20 @@ export default function BotSetupPage() {
           hasToken: bot.hasToken || false,
           connectionType: bot.connection_type || "official",
           connectionStatus: bot.connection_status || "pending",
+          hotelName:        bot.hotel_name        || "",
+          hotelCancellationPolicy: bot.hotel_cancellation_policy || "",
+          hotelMapsUrl:     bot.hotel_maps_url    || "",
+          hotelLocation:    bot.hotel_location    || "",
+          hotelRegion:      bot.hotel_region      || "Gilgit-Baltistan",
+          hotelCheckinTime: bot.hotel_checkin_time  || "2:00 PM",
+          hotelCheckoutTime: bot.hotel_checkout_time || "12:00 PM",
+          hotelAddress:     bot.hotel_address     || "",
+          hotelWifiName:    bot.hotel_wifi_name    || "",
+          hotelWifiPassword: bot.hotel_wifi_password || "",
+          hotelParkingInfo: bot.hotel_parking_info || "",
+          hotelAmenities:   bot.hotel_amenities   || "",
         }));
+
       } catch {
         setToast({ message: "Failed to load bot config", type: "error" });
       } finally {
@@ -184,8 +218,24 @@ export default function BotSetupPage() {
         response_length: form.responseLength.toLowerCase(),
         connection_type: form.connectionType,
         ...(form.accessToken ? { meta_access_token: form.accessToken } : {}),
+        // Hotel fields (only sent if hotel industry)
+        ...(form.industry.toLowerCase() === "hotel" ? {
+          hotel_name:         form.hotelName,
+          hotel_cancellation_policy: form.hotelCancellationPolicy,
+          hotel_maps_url:     form.hotelMapsUrl,
+          hotel_location:     form.hotelLocation,
+          hotel_region:       form.hotelRegion,
+          hotel_checkin_time:  form.hotelCheckinTime,
+          hotel_checkout_time: form.hotelCheckoutTime,
+          hotel_address:      form.hotelAddress,
+          hotel_wifi_name:    form.hotelWifiName,
+          hotel_wifi_password: form.hotelWifiPassword,
+          hotel_parking_info: form.hotelParkingInfo,
+          hotel_amenities:    form.hotelAmenities,
+        } : {}),
       });
       setToast({ message: "Bot configuration saved!", type: "success" });
+      window.dispatchEvent(new CustomEvent("botIndustryChanged", { detail: { industry: form.industry.toLowerCase() } }));
     } catch {
       setToast({ message: "Failed to save configuration", type: "error" });
     } finally {
@@ -495,6 +545,79 @@ export default function BotSetupPage() {
         </div>
       </div>
 
+      {/* Section 7 — Hotel Configuration (hotel industry only) */}
+      {form.industry.toLowerCase() === "hotel" && (
+        <div className="card mb-5">
+          <h2 className="text-[16px] font-bold text-slate-800 mb-5 flex items-center gap-2">
+            <span className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold text-white" style={{ background: "#1D9E75" }}>7</span>
+            Hotel Configuration
+          </h2>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-4">
+            <div>
+              <label className="form-label">Hotel Name</label>
+              <input className="form-input" value={form.hotelName} onChange={(e) => updateField("hotelName", e.target.value)} placeholder="Mountain View Guest House" />
+            </div>
+            <div>
+              <label className="form-label">Google Maps Link</label>
+              <input className="form-input" value={form.hotelMapsUrl} onChange={(e) => updateField("hotelMapsUrl", e.target.value)} placeholder="https://maps.google.com/..." />
+            </div>
+          </div>
+
+          <div className="mb-4">
+            <label className="form-label">Cancellation Policy</label>
+            <textarea className="form-input" rows={2} value={form.hotelCancellationPolicy} onChange={(e) => updateField("hotelCancellationPolicy", e.target.value)} placeholder="Free cancellation 48 hours before check-in. No refund after that." />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-4">
+            <div>
+              <label className="form-label">Hotel Location</label>
+              <input className="form-input" value={form.hotelLocation} onChange={(e) => updateField("hotelLocation", e.target.value)} placeholder="Karimabad, Hunza, Gilgit-Baltistan" />
+            </div>
+            <div>
+              <label className="form-label">Region</label>
+              <select className="form-input" value={form.hotelRegion} onChange={(e) => updateField("hotelRegion", e.target.value)}>
+                {HOTEL_REGIONS.map((r) => <option key={r}>{r}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="form-label">Check-in Time</label>
+              <input className="form-input" value={form.hotelCheckinTime} onChange={(e) => updateField("hotelCheckinTime", e.target.value)} placeholder="2:00 PM" />
+            </div>
+            <div>
+              <label className="form-label">Check-out Time</label>
+              <input className="form-input" value={form.hotelCheckoutTime} onChange={(e) => updateField("hotelCheckoutTime", e.target.value)} placeholder="12:00 PM" />
+            </div>
+          </div>
+
+          <div className="mb-4">
+            <label className="form-label">Hotel Address</label>
+            <textarea className="form-input" rows={2} value={form.hotelAddress} onChange={(e) => updateField("hotelAddress", e.target.value)} placeholder="Full address for guest directions" />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-4">
+            <div>
+              <label className="form-label">WiFi Name</label>
+              <input className="form-input" value={form.hotelWifiName} onChange={(e) => updateField("hotelWifiName", e.target.value)} placeholder="HotelGuest_5G" />
+            </div>
+            <div>
+              <label className="form-label">WiFi Password</label>
+              <input className="form-input" value={form.hotelWifiPassword} onChange={(e) => updateField("hotelWifiPassword", e.target.value)} placeholder="wifi password" />
+            </div>
+          </div>
+
+          <div className="mb-4">
+            <label className="form-label">Parking Info</label>
+            <input className="form-input" value={form.hotelParkingInfo} onChange={(e) => updateField("hotelParkingInfo", e.target.value)} placeholder="Free parking available / Street parking only" />
+          </div>
+
+          <div>
+            <label className="form-label">Amenities</label>
+            <textarea className="form-input" rows={2} value={form.hotelAmenities} onChange={(e) => updateField("hotelAmenities", e.target.value)} placeholder="Free WiFi, Breakfast included, Hot water, Mountain view, Restaurant, Laundry" />
+          </div>
+        </div>
+      )}
+
       <button className="btn-primary text-[15px] px-8 py-3" onClick={save} disabled={saving}>
         {saving ? "Saving..." : "Save Configuration"}
       </button>
@@ -512,11 +635,14 @@ function QuickConnectPanel({ botId }: { botId: string }) {
   const [polling, setPolling] = useState(false);
 
   const startConnect = async () => {
+    setPolling(false);
+    setQrCode(null);
     setQcStatus("connecting");
     try {
       await axios.post(`${API}/api/bots/${botId}/quickconnect/start`);
       setPolling(true);
-    } catch {
+    } catch (err: any) {
+      console.error("Quick connect start failed:", err.response?.data || err.message);
       setQcStatus("error");
     }
   };
@@ -530,9 +656,13 @@ function QuickConnectPanel({ botId }: { botId: string }) {
     } catch { /* silent */ }
   };
 
-  // Poll for QR/status
+  // Poll for QR/status (timeout after 45 seconds)
   useEffect(() => {
     if (!polling || !botId) return;
+    const timeout = setTimeout(() => {
+      setPolling(false);
+      setQcStatus((s) => s === "connecting" ? "error" : s);
+    }, 45000);
     const interval = setInterval(async () => {
       try {
         const res = await axios.get(`${API}/api/bots/${botId}/quickconnect/qr`);
@@ -547,9 +677,16 @@ function QuickConnectPanel({ botId }: { botId: string }) {
         } else if (res.data.status === "connecting") {
           setQcStatus("connecting");
         }
-      } catch { /* silent */ }
+      } catch (err: any) {
+        // 404 = session never started (backend error) — stop polling and surface the error
+        if (err.response?.status === 404) {
+          setPolling(false);
+          setQcStatus("error");
+        }
+        // other errors (network blip) — keep polling silently
+      }
     }, 3000);
-    return () => clearInterval(interval);
+    return () => { clearInterval(interval); clearTimeout(timeout); };
   }, [polling, botId]);
 
   if (qcStatus === "connected") {
@@ -588,6 +725,7 @@ function QuickConnectPanel({ botId }: { botId: string }) {
       <div className="text-center py-8">
         <div className="w-8 h-8 border-2 border-slate-200 border-t-[#1D9E75] rounded-full animate-spin mx-auto mb-4" />
         <p className="text-[14px] text-slate-500">Generating QR code...</p>
+        <p className="text-[12px] text-slate-400 mt-1">This can take up to 30 seconds</p>
       </div>
     );
   }
@@ -603,8 +741,14 @@ function QuickConnectPanel({ botId }: { botId: string }) {
       <p className="text-[15px] font-bold text-slate-800 mb-2">Connect your existing WhatsApp</p>
       <p className="text-[12px] text-slate-400 mb-1">Your number stays the same. No Meta registration needed.</p>
       <p className="text-[12px] text-slate-400 mb-5">Setup takes 2 minutes.</p>
-      {qcStatus === "error" && <p className="text-[12px] text-red-500 mb-3">Connection failed. Try again.</p>}
-      <button onClick={startConnect} className="btn-primary">Start Quick Connect →</button>
+      {qcStatus === "error" && (
+        <div className="mb-3 p-3 rounded-xl text-[12px]" style={{ background: "#fef2f2", color: "#b91c1c" }}>
+          Could not start session. Make sure the backend server is running, then try again.
+        </div>
+      )}
+      <button onClick={startConnect} className="btn-primary">
+        {qcStatus === "error" ? "Try Again →" : "Start Quick Connect →"}
+      </button>
     </div>
   );
 }

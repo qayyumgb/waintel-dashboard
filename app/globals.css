@@ -40,6 +40,21 @@ body {
   min-height: 100vh;
 }
 
+/* Sidebar nav scrollbar — Chrome/Safari */
+nav::-webkit-scrollbar {
+  width: 4px;
+}
+nav::-webkit-scrollbar-track {
+  background: transparent;
+}
+nav::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 99px;
+}
+nav::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.35);
+}
+
 /* Buttons */
 .btn-primary {
   background: linear-gradient(135deg, #1D9E75 0%, #0F6E56 100%);

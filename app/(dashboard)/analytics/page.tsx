@@ -20,18 +20,39 @@ interface Analytics {
   };
 }
 
+interface HotelStats {
+  totalBookings: number;
+  confirmedBookings: number;
+  monthRevenue: number;
+  occupancyRate: string;
+  avgNights: number;
+  checkInsToday: number;
+  checkOutsToday: number;
+  upcomingCheckIns: number;
+  popularRoomType: string;
+}
+
 export default function AnalyticsPage() {
   const { botId } = useAuth();
   const [data, setData] = useState<Analytics | null>(null);
+  const [hotelStats, setHotelStats] = useState<HotelStats | null>(null);
+  const [industry, setIndustry] = useState<string>("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!botId) return;
-    axios.get(`${API}/api/stats/analytics?botId=${botId}`)
-      .then((res) => setData(res.data))
-      .catch(() => {})
-      .finally(() => setLoading(false));
+    Promise.all([
+      axios.get(`${API}/api/stats/analytics?botId=${botId}`).then((r) => setData(r.data)).catch(() => {}),
+      axios.get(`${API}/api/bots/${botId}`).then((r) => setIndustry((r.data.industry || "").toLowerCase())).catch(() => {}),
+    ]).finally(() => setLoading(false));
   }, [botId]);
+
+  useEffect(() => {
+    if (!botId || industry !== "hotel") return;
+    axios.get(`${API}/api/hotels/stats?botId=${botId}`)
+      .then((r) => setHotelStats(r.data))
+      .catch(() => {});
+  }, [botId, industry]);
 
   const maxDaily = Math.max(...(data?.dailyMessages.map((d) => d.count) || [1]));
   const totalMsgs = (data?.voiceMessages || 0) + (data?.textMessages || 0);
@@ -58,6 +79,43 @@ export default function AnalyticsPage() {
         <div className="text-center py-20 text-slate-400">Failed to load analytics</div>
       ) : (
         <>
+          {/* Hotel Metrics — shown when industry = hotel */}
+          {industry === "hotel" && hotelStats && (
+            <div className="mb-8">
+              <h2 className="text-[16px] font-bold text-slate-800 mb-4 flex items-center gap-2">
+                🏨 Hotel Performance — This Month
+              </h2>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-4">
+                {[
+                  { label: "Total Bookings",    value: hotelStats.totalBookings,    sub: "all time" },
+                  { label: "Confirmed",         value: hotelStats.confirmedBookings, sub: "active bookings" },
+                  { label: "Month Revenue",     value: `Rs. ${hotelStats.monthRevenue.toLocaleString()}`, sub: "this month" },
+                  { label: "Occupancy Rate",    value: hotelStats.occupancyRate,     sub: "confirmed / rooms" },
+                  { label: "Avg Stay",          value: `${hotelStats.avgNights} nights`, sub: "per booking" },
+                ].map((s) => (
+                  <div key={s.label} className="card !py-4">
+                    <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">{s.label}</div>
+                    <div className="text-[20px] font-bold text-slate-900">{s.value}</div>
+                    <div className="text-[11px] text-slate-400 mt-0.5">{s.sub}</div>
+                  </div>
+                ))}
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                {[
+                  { label: "Check-ins Today",     value: hotelStats.checkInsToday,    color: "#e8f5e9", text: "#1b5e20" },
+                  { label: "Check-outs Today",    value: hotelStats.checkOutsToday,   color: "#fef3c7", text: "#92400e" },
+                  { label: "Upcoming (7 days)",   value: hotelStats.upcomingCheckIns, color: "#eff6ff", text: "#1d4ed8" },
+                  { label: "Popular Room",        value: hotelStats.popularRoomType,  color: "rgba(29,158,117,0.08)", text: "#047857" },
+                ].map((s) => (
+                  <div key={s.label} className="p-4 rounded-xl" style={{ background: s.color }}>
+                    <div className="text-[11px] font-semibold uppercase tracking-wider mb-1" style={{ color: s.text, opacity: 0.7 }}>{s.label}</div>
+                    <div className="text-[18px] font-bold" style={{ color: s.text }}>{s.value}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Top Stats */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-8">
             <div className="card">
