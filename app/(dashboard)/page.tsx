@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import axios from "axios";
 import { useAuth } from "@/lib/useAuth";
 
@@ -14,23 +15,32 @@ interface ConversationRow {
   messagecount: number;
 }
 
+interface UsageWidget {
+  totalConversations: number;
+  totalCostPkr: number;
+  metaPkr: number;
+  metaPct: string;
+}
+
 export default function DashboardPage() {
   const { botId } = useAuth();
   const [stats, setStats] = useState({ totalConversations: 0, today: 0, thisWeek: 0 });
   const [messagesToday, setMessagesToday] = useState(0);
   const [knowledgeChunks, setKnowledgeChunks] = useState(0);
   const [conversations, setConversations] = useState<ConversationRow[]>([]);
+  const [usage, setUsage] = useState<UsageWidget | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!botId) return;
     async function fetchData() {
       try {
-        const [convRes, msgRes, knowledgeRes, convListRes] = await Promise.allSettled([
+        const [convRes, msgRes, knowledgeRes, convListRes, usageRes] = await Promise.allSettled([
           axios.get(`${API}/api/stats/conversations?botId=${botId}`),
           axios.get(`${API}/api/stats/messages-today?botId=${botId}`),
           axios.get(`${API}/api/knowledge/${botId}/status`),
           axios.get(`${API}/api/conversations?botId=${botId}&limit=5`),
+          axios.get(`${API}/api/pricing/usage?botId=${botId}`),
         ]);
 
         if (convRes.status === "fulfilled") {
@@ -43,6 +53,15 @@ export default function DashboardPage() {
         if (msgRes.status === "fulfilled") setMessagesToday(msgRes.value.data.count);
         if (knowledgeRes.status === "fulfilled") setKnowledgeChunks(knowledgeRes.value.data.totalChunks);
         if (convListRes.status === "fulfilled") setConversations(convListRes.value.data.conversations || []);
+        if (usageRes.status === "fulfilled") {
+          const u = usageRes.value.data;
+          setUsage({
+            totalConversations: u.summary.totalConversations,
+            totalCostPkr: u.summary.totalCostPkr,
+            metaPkr: u.metaCost.totalPkr,
+            metaPct: u.summary.metaAsPercentage,
+          });
+        }
       } catch (e) {
         console.error("Failed to load dashboard data", e);
       } finally {
@@ -98,6 +117,30 @@ export default function DashboardPage() {
           </div>
         ))}
       </div>
+
+      {/* This Month usage widget */}
+      {usage && (
+        <div className="card mb-8" style={{ background: "linear-gradient(135deg, rgba(29,158,117,0.04), rgba(15,110,86,0.08))", border: "1px solid rgba(29,158,117,0.15)" }}>
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1">
+              <div className="text-[11px] font-semibold uppercase tracking-wider mb-1" style={{ color: "#047857" }}>💰 This Month</div>
+              <div className="text-[20px] font-bold text-slate-900">
+                {usage.totalConversations.toLocaleString()} conversations · Rs. {usage.totalCostPkr.toLocaleString("en-PK")} total cost
+              </div>
+              <div className="text-[12px] text-slate-500 mt-1">
+                Meta API: Rs. {usage.metaPkr.toLocaleString("en-PK")} ({usage.metaPct}) · rest is Waintel subscription
+              </div>
+            </div>
+            <Link
+              href="/usage"
+              className="shrink-0 text-[12px] font-semibold px-4 py-2 rounded-lg whitespace-nowrap"
+              style={{ background: "#1D9E75", color: "#fff" }}
+            >
+              View Details →
+            </Link>
+          </div>
+        </div>
+      )}
 
       <div className="card">
         <div className="flex items-center justify-between mb-5">
