@@ -89,6 +89,17 @@ export default function BotSetupPage() {
     hotelWifiPassword: "",
     hotelParkingInfo: "",
     hotelAmenities: "",
+    // Ecommerce fields
+    storeCurrency: "PKR",
+    storeUrl: "",
+    freeShippingAbove: 2000,
+    returnPolicy: "",
+    exchangePolicy: "",
+    shopifyDomain: "",
+    shopifyAccessToken: "",
+    woocommerceUrl: "",
+    woocommerceKey: "",
+    woocommerceSecret: "",
   });
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
@@ -144,6 +155,16 @@ export default function BotSetupPage() {
           hotelWifiPassword: bot.hotel_wifi_password || "",
           hotelParkingInfo: bot.hotel_parking_info || "",
           hotelAmenities:   bot.hotel_amenities   || "",
+          storeCurrency:      bot.store_currency     || "PKR",
+          storeUrl:           bot.store_url          || "",
+          freeShippingAbove:  bot.free_shipping_above ?? 2000,
+          returnPolicy:       bot.return_policy      || "",
+          exchangePolicy:     bot.exchange_policy    || "",
+          shopifyDomain:      bot.shopify_domain     || "",
+          shopifyAccessToken: bot.shopify_access_token || "",
+          woocommerceUrl:     bot.woocommerce_url    || "",
+          woocommerceKey:     bot.woocommerce_key    || "",
+          woocommerceSecret:  bot.woocommerce_secret || "",
         }));
 
       } catch {
@@ -232,6 +253,19 @@ export default function BotSetupPage() {
           hotel_wifi_password: form.hotelWifiPassword,
           hotel_parking_info: form.hotelParkingInfo,
           hotel_amenities:    form.hotelAmenities,
+        } : {}),
+        // Ecommerce fields (only sent if ecommerce industry)
+        ...(form.industry.toLowerCase() === "e-commerce" || form.industry.toLowerCase() === "ecommerce" ? {
+          store_currency:       form.storeCurrency,
+          store_url:            form.storeUrl,
+          free_shipping_above:  form.freeShippingAbove,
+          return_policy:        form.returnPolicy,
+          exchange_policy:      form.exchangePolicy,
+          shopify_domain:       form.shopifyDomain,
+          shopify_access_token: form.shopifyAccessToken,
+          woocommerce_url:      form.woocommerceUrl,
+          woocommerce_key:      form.woocommerceKey,
+          woocommerce_secret:   form.woocommerceSecret,
         } : {}),
       });
       setToast({ message: "Bot configuration saved!", type: "success" });
@@ -614,6 +648,102 @@ export default function BotSetupPage() {
           <div>
             <label className="form-label">Amenities</label>
             <textarea className="form-input" rows={2} value={form.hotelAmenities} onChange={(e) => updateField("hotelAmenities", e.target.value)} placeholder="Free WiFi, Breakfast included, Hot water, Mountain view, Restaurant, Laundry" />
+          </div>
+        </div>
+      )}
+
+      {/* Section 8 — Store Configuration (ecommerce industry only) */}
+      {(form.industry.toLowerCase() === "e-commerce" || form.industry.toLowerCase() === "ecommerce") && (
+        <div className="card mb-5">
+          <h2 className="text-[16px] font-bold text-slate-800 mb-5 flex items-center gap-2">
+            <span className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold text-white" style={{ background: "#1D9E75" }}>8</span>
+            Store Configuration
+          </h2>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-4">
+            <div>
+              <label className="form-label">Store URL</label>
+              <input className="form-input" value={form.storeUrl} onChange={(e) => updateField("storeUrl", e.target.value)} placeholder="https://mystore.com" />
+            </div>
+            <div>
+              <label className="form-label">Currency</label>
+              <select className="form-input" value={form.storeCurrency} onChange={(e) => updateField("storeCurrency", e.target.value)}>
+                <option value="PKR">PKR — Pakistani Rupee</option>
+                <option value="USD">USD — US Dollar</option>
+                <option value="AED">AED — UAE Dirham</option>
+              </select>
+            </div>
+            <div>
+              <label className="form-label">Free Shipping Above (Rs.)</label>
+              <input type="number" className="form-input" value={form.freeShippingAbove} onChange={(e) => updateField("freeShippingAbove", parseInt(e.target.value) || 0)} placeholder="2000" />
+            </div>
+          </div>
+
+          <div className="mb-4">
+            <label className="form-label">Return Policy</label>
+            <textarea className="form-input" rows={2} value={form.returnPolicy} onChange={(e) => updateField("returnPolicy", e.target.value)} placeholder="7-day return on unused items with tags" />
+          </div>
+
+          <div>
+            <label className="form-label">Exchange Policy</label>
+            <textarea className="form-input" rows={2} value={form.exchangePolicy} onChange={(e) => updateField("exchangePolicy", e.target.value)} placeholder="Exchange for different size/color within 14 days" />
+          </div>
+        </div>
+      )}
+
+      {/* Section 9 — Platform Integration (ecommerce industry only) */}
+      {(form.industry.toLowerCase() === "e-commerce" || form.industry.toLowerCase() === "ecommerce") && (
+        <div className="card mb-5">
+          <h2 className="text-[16px] font-bold text-slate-800 mb-5 flex items-center gap-2">
+            <span className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold text-white" style={{ background: "#1D9E75" }}>9</span>
+            Platform Integration
+          </h2>
+
+          <div className="mb-5 p-4 rounded-xl border border-slate-200">
+            <h3 className="text-[14px] font-semibold text-slate-800 mb-3">🛒 Shopify</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-3">
+              <div>
+                <label className="form-label">Shopify Domain</label>
+                <input className="form-input" value={form.shopifyDomain} onChange={(e) => updateField("shopifyDomain", e.target.value)} placeholder="mystore.myshopify.com" />
+              </div>
+              <div>
+                <label className="form-label">Access Token</label>
+                <input type="password" className="form-input" value={form.shopifyAccessToken} onChange={(e) => updateField("shopifyAccessToken", e.target.value)} placeholder="shpat_..." />
+              </div>
+            </div>
+            <button
+              type="button"
+              className="btn-secondary text-[12px]"
+              onClick={async () => {
+                try {
+                  const r = await axios.get(`${API}/api/ecommerce/shopify/test?botId=${BOT_ID}`);
+                  if (r.data.success) setToast({ message: `Connected to ${r.data.shopName}`, type: "success" });
+                  else setToast({ message: r.data.error || "Connection failed", type: "error" });
+                } catch {
+                  setToast({ message: "Connection test failed", type: "error" });
+                }
+              }}
+            >
+              Test Connection
+            </button>
+          </div>
+
+          <div className="p-4 rounded-xl border border-slate-200">
+            <h3 className="text-[14px] font-semibold text-slate-800 mb-3">🛍️ WooCommerce</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              <div>
+                <label className="form-label">Store URL</label>
+                <input className="form-input" value={form.woocommerceUrl} onChange={(e) => updateField("woocommerceUrl", e.target.value)} placeholder="https://mystore.com" />
+              </div>
+              <div>
+                <label className="form-label">Consumer Key</label>
+                <input className="form-input" value={form.woocommerceKey} onChange={(e) => updateField("woocommerceKey", e.target.value)} placeholder="ck_..." />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="form-label">Consumer Secret</label>
+                <input type="password" className="form-input" value={form.woocommerceSecret} onChange={(e) => updateField("woocommerceSecret", e.target.value)} placeholder="cs_..." />
+              </div>
+            </div>
           </div>
         </div>
       )}
