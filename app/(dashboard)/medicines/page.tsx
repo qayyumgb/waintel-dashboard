@@ -40,12 +40,12 @@ export default function MedicinesPage() {
       .finally(() => setLoading(false));
   }, [BOT_ID]);
 
-  if (loading) return <div className="p-8"><div className="text-center py-20 text-slate-400">Loading...</div></div>;
+  if (loading) return <div className="p-3 md:p-8"><div className="text-center py-20 text-slate-400">Loading...</div></div>;
 
   const isHealth = industry === "health" || industry === "clinic" || industry === "healthcare";
   if (!isHealth) {
     return (
-      <div className="p-8 max-w-4xl">
+      <div className="p-3 md:p-8 max-w-4xl">
         <div className="card text-center py-16">
           <h2 className="text-[18px] font-bold text-slate-800 mb-2">Medicines page is for Health industry only</h2>
           <p className="text-[13px] text-slate-500 mb-5">Switch your bot&apos;s industry to <b>Health</b> in Bot Setup.</p>
@@ -56,7 +56,7 @@ export default function MedicinesPage() {
   }
 
   return (
-    <div className="p-8 animate-fade-in max-w-6xl">
+    <div className="p-3 md:p-8 animate-fade-in max-w-6xl">
       <div className="mb-8">
         <div className="page-breadcrumb">💊 Medicines</div>
         <h1 className="text-[28px] font-bold text-slate-900 mb-2">Medicine Inventory</h1>

@@ -362,14 +362,14 @@ export default function BotSetupPage() {
 
   if (loading) {
     return (
-      <div className="p-8 animate-fade-in max-w-4xl">
+      <div className="p-3 md:p-8 animate-fade-in max-w-4xl">
         <div className="text-center py-20 text-slate-400">Loading bot configuration...</div>
       </div>
     );
   }
 
   return (
-    <div className="p-8 animate-fade-in max-w-4xl">
+    <div className="p-3 md:p-8 animate-fade-in max-w-4xl">
       <div className="mb-8">
         <div className="page-breadcrumb">
           <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>

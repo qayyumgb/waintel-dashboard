@@ -58,7 +58,7 @@ const BOTTOM_NAV = [
   { href: "/onboarding", label: "Setup Wizard", icon: WizardIcon },
 ];
 
-export default function Sidebar() {
+export default function Sidebar({ isOpen, onClose }: { isOpen?: boolean; onClose?: () => void }) {
   const pathname = usePathname();
   const { data: session } = useSession();
   const userName = session?.user?.name || "My Business";
@@ -108,27 +108,36 @@ export default function Sidebar() {
 
   return (
     <aside
-      className="fixed left-0 top-0 bottom-0 w-[264px] flex flex-col z-40"
+      className={`fixed left-0 top-0 bottom-0 w-[264px] flex flex-col z-40 transition-transform duration-300 ${isOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0`}
       style={{
         background: "linear-gradient(180deg, #1D9E75 0%, #0F6E56 50%, #0A5A45 100%)",
         borderRight: "1px solid rgba(255,255,255,0.1)",
         boxShadow: "4px 0 24px rgba(0,0,0,0.15)",
       }}
     >
-      {/* Logo */}
+      {/* Logo + close button */}
       <div className="px-6 py-6 flex items-center gap-3">
         <div
-          className="w-[42px] h-[42px] rounded-xl flex items-center justify-center text-lg font-bold text-white"
+          className="w-[42px] h-[42px] rounded-xl flex items-center justify-center text-lg font-bold text-white shrink-0"
           style={{ background: "rgba(255,255,255,0.15)", backdropFilter: "blur(8px)" }}
         >
           W
         </div>
-        <div>
+        <div className="flex-1 min-w-0">
           <div className="text-white font-bold text-[15px] leading-tight">Waintel.ai</div>
           <div className="text-white/60 text-[10px] font-semibold uppercase tracking-wider">
             WhatsApp AI Agent
           </div>
         </div>
+        <button
+          onClick={() => onClose?.()}
+          className="md:hidden w-8 h-8 rounded-lg flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 transition-all shrink-0"
+          aria-label="Close menu"
+        >
+          <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
       </div>
 
       {/* Navigation */}
@@ -144,6 +153,7 @@ export default function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
+              onClick={() => onClose?.()}
               className="flex items-center gap-3 px-4 py-3 rounded-xl text-[14px] font-medium transition-all duration-200 relative group"
               style={{
                 color: isActive ? "#fff" : "rgba(255,255,255,0.7)",
@@ -171,17 +181,6 @@ export default function Sidebar() {
           );
         })}
       </nav>
-
-      {/* Info Box */}
-      <div className="mx-4 mb-4 p-4 rounded-xl" style={{ background: "rgba(255,255,255,0.1)", backdropFilter: "blur(8px)" }}>
-        <div className="text-white/80 text-[11px] font-semibold uppercase tracking-wider mb-1">
-          Bot Status
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-emerald-300 animate-pulse" />
-          <span className="text-white text-[13px] font-medium">Active & Running</span>
-        </div>
-      </div>
 
       {/* User */}
       <div className="px-4 py-4 border-t border-white/10">

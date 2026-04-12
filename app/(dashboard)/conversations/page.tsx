@@ -62,10 +62,8 @@ export default function ConversationsPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const activeIdRef = useRef<string | null>(null);
 
-  // Keep ref in sync
   useEffect(() => { activeIdRef.current = activeId; }, [activeId]);
 
-  // Fetch conversation list
   const fetchConversations = useCallback(async () => {
     if (!botId) return;
     try {
@@ -81,7 +79,6 @@ export default function ConversationsPage() {
     return () => clearInterval(interval);
   }, [fetchConversations]);
 
-  // Fetch messages for active conversation
   const fetchMessages = useCallback(async (convId: string) => {
     try {
       const res = await axios.get(`${API}/api/conversations/${convId}/messages`);
@@ -93,57 +90,38 @@ export default function ConversationsPage() {
     if (activeId) fetchMessages(activeId);
   }, [activeId, fetchMessages]);
 
-  // Auto-scroll
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // SSE connection
+  // SSE
   useEffect(() => {
     if (!botId) return;
     const eventSource = new EventSource(`${API}/api/conversations/stream?botId=${botId}`);
-
     eventSource.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
         if (data.type === "new_message") {
-          // If it's for the active conversation, append message
           if (data.conversationId === activeIdRef.current) {
             setMessages((prev) => {
-              // Avoid duplicates
-              if (prev.some((m) => m.content === data.content && m.role === data.role && Date.now() - new Date(m.created_at).getTime() < 5000)) {
-                return prev;
-              }
-              return [...prev, {
-                id: `sse-${Date.now()}`,
-                role: data.role,
-                content: data.content,
-                voice_transcription: false,
-                detected_language: null,
-                created_at: data.timestamp,
-              }];
+              if (prev.some((m) => m.content === data.content && m.role === data.role && Date.now() - new Date(m.created_at).getTime() < 5000)) return prev;
+              return [...prev, { id: `sse-${Date.now()}`, role: data.role, content: data.content, voice_transcription: false, detected_language: null, created_at: data.timestamp }];
             });
           } else {
-            // Toast for messages in other conversations
             setToast({ message: `New message from ${formatPhone(data.customerPhone)}`, type: "success" });
           }
-          // Refresh list
           fetchConversations();
         }
-      } catch { /* ignore parse errors */ }
+      } catch { /* ignore */ }
     };
-
     return () => eventSource.close();
   }, [botId, fetchConversations]);
 
-  // Send reply
   const sendReply = async () => {
     if (!replyText.trim() || !activeId) return;
     setSending(true);
     try {
-      await axios.post(`${API}/api/conversations/${activeId}/reply`, {
-        message: replyText,
-      });
+      await axios.post(`${API}/api/conversations/${activeId}/reply`, { message: replyText });
       setReplyText("");
     } catch {
       setToast({ message: "Failed to send reply", type: "error" });
@@ -152,8 +130,8 @@ export default function ConversationsPage() {
     }
   };
 
-  // Toggle manual/active mode
   const activeConv = conversations.find((c) => c.id === activeId);
+
   const toggleMode = async () => {
     if (!activeId || !activeConv) return;
     const newStatus = activeConv.status === "manual" ? "active" : "manual";
@@ -187,14 +165,18 @@ export default function ConversationsPage() {
   const bubbleColor = (role: string) => {
     if (role === "customer") return { bg: "#f1f5f9", text: "#334155", align: "items-start" };
     if (role === "owner") return { bg: "#dbeafe", text: "#1e40af", align: "items-end" };
-    return { bg: "#ecfdf5", text: "#047857", align: "items-end" }; // assistant
+    return { bg: "#ecfdf5", text: "#047857", align: "items-end" };
   };
 
+  // On mobile: show list when no activeId, show chat when activeId is set
+  // On desktop: always show both side by side
+  const goBack = () => { setActiveId(null); setMessages([]); };
+
   return (
-    <div className="flex h-screen animate-fade-in" style={{ marginLeft: 0 }}>
+    <div className="flex h-[calc(100vh-56px)] md:h-screen animate-fade-in" style={{ marginLeft: 0 }}>
       {/* LEFT — Conversation List */}
-      <div className="w-[340px] border-r border-slate-200 flex flex-col bg-white shrink-0">
-        <div className="p-4 border-b border-slate-100">
+      <div className={`w-full md:w-[340px] border-r border-slate-200 flex flex-col bg-white md:shrink-0 ${activeId ? "hidden md:flex" : "flex"}`}>
+        <div className="p-3 md:p-4 border-b border-slate-100">
           <h2 className="text-[16px] font-bold text-slate-800 mb-3">Conversations</h2>
           <input
             className="form-input !py-2 text-[13px]"
@@ -211,24 +193,22 @@ export default function ConversationsPage() {
               <button
                 key={conv.id}
                 onClick={() => setActiveId(conv.id)}
-                className="w-full text-left px-4 py-3 border-b border-slate-50 transition-colors hover:bg-slate-50"
+                className="w-full text-left px-3 md:px-4 py-3 border-b border-slate-50 transition-colors hover:bg-slate-50"
                 style={{ background: activeId === conv.id ? "#f0fdf4" : "transparent" }}
               >
                 <div className="flex items-center justify-between mb-0.5">
-                  <span className="text-[14px] font-semibold text-slate-800 truncate max-w-[180px]">
+                  <span className="text-[14px] font-semibold text-slate-800 truncate max-w-[60%]">
                     {conv.customer_name || formatPhone(conv.customer_phone)}
                   </span>
-                  <span className="text-[11px] text-slate-400">{timeAgo(conv.last_message_at)}</span>
+                  <span className="text-[11px] text-slate-400 shrink-0">{timeAgo(conv.last_message_at)}</span>
                 </div>
                 {isRealPhone(conv.customer_phone) && conv.customer_name && (
                   <div className="text-[11px] text-slate-400 mb-0.5">{formatPhone(conv.customer_phone)}</div>
                 )}
                 <div className="flex items-center justify-between">
-                  <span className="text-[12px] text-slate-500 truncate max-w-[200px]">
-                    {conv.messagecount} messages
-                  </span>
+                  <span className="text-[12px] text-slate-500">{conv.messagecount} messages</span>
                   <span
-                    className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                    className="text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0"
                     style={{
                       background: conv.status === "manual" ? "#dbeafe" : conv.status === "escalated" ? "#fef3c7" : "rgba(16,185,129,0.1)",
                       color: conv.status === "manual" ? "#1e40af" : conv.status === "escalated" ? "#92400e" : "#047857",
@@ -244,7 +224,7 @@ export default function ConversationsPage() {
       </div>
 
       {/* RIGHT — Active Conversation */}
-      <div className="flex-1 flex flex-col bg-[#f8fafc]">
+      <div className={`flex-1 flex flex-col bg-[#f8fafc] ${activeId ? "flex" : "hidden md:flex"}`}>
         {!activeId ? (
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center">
@@ -260,33 +240,34 @@ export default function ConversationsPage() {
         ) : (
           <>
             {/* Chat Header */}
-            <div className="px-6 py-4 bg-white border-b border-slate-200 flex items-center justify-between">
-              <div>
-                <div className="text-[15px] font-semibold text-slate-800">
+            <div className="px-3 md:px-6 py-3 md:py-4 bg-white border-b border-slate-200 flex items-center gap-3">
+              {/* Back button — mobile only */}
+              <button
+                onClick={goBack}
+                className="md:hidden w-8 h-8 rounded-lg flex items-center justify-center text-slate-500 hover:bg-slate-100 shrink-0"
+                aria-label="Back to list"
+              >
+                <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+
+              <div className="flex-1 min-w-0">
+                <div className="text-[14px] md:text-[15px] font-semibold text-slate-800 truncate">
                   {activeConv?.customer_name || formatPhone(activeConv?.customer_phone || "")}
                 </div>
-                {isRealPhone(activeConv?.customer_phone || "") && (
-                  <div className="flex items-center gap-1.5 mt-0.5">
-                    <span className="text-[12px] text-slate-400">{formatPhone(activeConv!.customer_phone)}</span>
-                    <button
-                      className="text-slate-300 hover:text-slate-500 transition-colors"
-                      title="Copy number"
-                      onClick={() => { navigator.clipboard.writeText(activeConv!.customer_phone); setToast({ message: "Number copied!", type: "success" }); }}
-                    >
-                      <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                      </svg>
-                    </button>
-                  </div>
-                )}
-                <div className="text-[11px] text-slate-400 mt-0.5">
-                  {activeConv?.messagecount} messages &middot; {activeConv?.status}
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {isRealPhone(activeConv?.customer_phone || "") && (
+                    <span className="text-[11px] text-slate-400">{formatPhone(activeConv!.customer_phone)}</span>
+                  )}
+                  <span className="text-[11px] text-slate-400">&middot; {activeConv?.messagecount} msgs &middot; {activeConv?.status}</span>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
+
+              <div className="flex items-center gap-1.5 md:gap-3 shrink-0">
                 <button
-                  className="text-[11px] text-slate-400 hover:text-red-500 transition-colors px-2 py-1"
-                  title="Delete conversation"
+                  className="text-slate-400 hover:text-red-500 transition-colors p-1"
+                  title="Delete"
                   onClick={() => deleteConversation(activeConv!.id)}
                 >
                   <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -294,28 +275,28 @@ export default function ConversationsPage() {
                   </svg>
                 </button>
                 <span
-                  className="text-[11px] font-bold px-3 py-1.5 rounded-full"
+                  className="hidden sm:inline text-[10px] font-bold px-2.5 py-1 rounded-full"
                   style={{
                     background: activeConv?.status === "manual" ? "#dbeafe" : "rgba(16,185,129,0.1)",
                     color: activeConv?.status === "manual" ? "#1e40af" : "#047857",
                   }}
                 >
-                  {activeConv?.status === "manual" ? "Manual Mode" : "AI Handling"}
+                  {activeConv?.status === "manual" ? "Manual" : "AI"}
                 </span>
-                <button className="btn-secondary !py-2 !px-4 text-[12px]" onClick={toggleMode}>
-                  {activeConv?.status === "manual" ? "Hand Back to AI" : "Take Over"}
+                <button className="btn-secondary !py-1.5 !px-3 text-[11px] md:text-[12px]" onClick={toggleMode}>
+                  {activeConv?.status === "manual" ? "Back to AI" : "Take Over"}
                 </button>
               </div>
             </div>
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto px-6 py-4 space-y-3">
+            <div className="flex-1 overflow-y-auto px-3 md:px-6 py-3 md:py-4 space-y-3">
               {messages.map((msg) => {
                 const style = bubbleColor(msg.role);
                 return (
                   <div key={msg.id} className={`flex flex-col ${style.align}`}>
                     <div
-                      className="max-w-[70%] px-4 py-3 rounded-2xl text-[14px] leading-relaxed"
+                      className="max-w-[85%] md:max-w-[70%] px-3 md:px-4 py-2.5 md:py-3 rounded-2xl text-[13px] md:text-[14px] leading-relaxed"
                       style={{ background: style.bg, color: style.text }}
                     >
                       {msg.content.startsWith("[Image") ? (
@@ -354,10 +335,10 @@ export default function ConversationsPage() {
             </div>
 
             {/* Reply Input */}
-            <div className="px-6 py-4 bg-white border-t border-slate-200">
-              <div className="flex gap-3">
+            <div className="px-3 md:px-6 py-3 md:py-4 bg-white border-t border-slate-200">
+              <div className="flex gap-2 md:gap-3">
                 <textarea
-                  className="form-input flex-1 !py-3 resize-none text-[14px]"
+                  className="form-input flex-1 !py-2.5 md:!py-3 resize-none text-[13px] md:text-[14px]"
                   rows={1}
                   placeholder="Type a reply..."
                   value={replyText}
@@ -366,11 +347,10 @@ export default function ConversationsPage() {
                     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendReply(); }
                   }}
                 />
-                <button className="btn-primary shrink-0 !py-3" onClick={sendReply} disabled={sending || !replyText.trim()}>
+                <button className="btn-primary shrink-0 !py-2.5 md:!py-3 !px-4" onClick={sendReply} disabled={sending || !replyText.trim()}>
                   {sending ? "..." : "Send"}
                 </button>
               </div>
-              <div className="text-right mt-1 text-[11px] text-slate-400">{replyText.length}/500</div>
             </div>
           </>
         )}

@@ -66,7 +66,7 @@ export default function EnrollmentsPage() {
   };
 
   return (
-    <div className="p-8 animate-fade-in">
+    <div className="p-3 md:p-8 animate-fade-in">
       <div className="mb-8">
         <div className="page-breadcrumb">🎓 Enrollments</div>
         <h1 className="text-[28px] font-bold text-slate-900 mb-2">Student Enrollments</h1>

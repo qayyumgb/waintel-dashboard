@@ -33,10 +33,10 @@ export default function CoursesPage() {
       .finally(() => setLoading(false));
   }, [BOT_ID]);
 
-  if (loading) return <div className="p-8"><div className="text-center py-20 text-slate-400">Loading...</div></div>;
+  if (loading) return <div className="p-3 md:p-8"><div className="text-center py-20 text-slate-400">Loading...</div></div>;
   if (industry !== "education") {
     return (
-      <div className="p-8 max-w-4xl"><div className="card text-center py-16">
+      <div className="p-3 md:p-8 max-w-4xl"><div className="card text-center py-16">
         <h2 className="text-[18px] font-bold text-slate-800 mb-2">Courses page is for Education industry only</h2>
         <p className="text-[13px] text-slate-500 mb-5">Switch your bot&apos;s industry to <b>Education</b> in Bot Setup.</p>
         <a href="/bot-setup" className="btn-primary text-[13px] inline-block">Go to Bot Setup</a>
@@ -45,7 +45,7 @@ export default function CoursesPage() {
   }
 
   return (
-    <div className="p-8 animate-fade-in max-w-6xl">
+    <div className="p-3 md:p-8 animate-fade-in max-w-6xl">
       <div className="mb-8">
         <div className="page-breadcrumb">📚 Courses</div>
         <h1 className="text-[28px] font-bold text-slate-900 mb-2">Course Management</h1>

@@ -80,7 +80,7 @@ export default function AppointmentsPage() {
   const isHealth = industry === "clinic" || industry === "health" || industry === "healthcare";
   if (industry !== null && !isHealth) {
     return (
-      <div className="p-8 animate-fade-in max-w-4xl">
+      <div className="p-3 md:p-8 animate-fade-in max-w-4xl">
         <div className="card text-center py-16">
           <div className="w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center" style={{ background: "rgba(29,158,117,0.08)" }}>
             <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="#1D9E75" strokeWidth={2}>
@@ -98,7 +98,7 @@ export default function AppointmentsPage() {
   }
 
   return (
-    <div className="p-8 animate-fade-in">
+    <div className="p-3 md:p-8 animate-fade-in">
       <div className="mb-8">
         <div className="page-breadcrumb">📅 Appointments</div>
         <h1 className="text-[28px] font-bold text-slate-900 mb-2">Patient Appointments</h1>

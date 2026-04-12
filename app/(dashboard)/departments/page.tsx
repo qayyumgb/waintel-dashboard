@@ -45,7 +45,7 @@ export default function DepartmentsPage() {
   const isHealth = industry === "health" || industry === "clinic" || industry === "healthcare";
   if (industry !== null && (!isHealth || healthcareType !== "hospital")) {
     return (
-      <div className="p-8 max-w-4xl">
+      <div className="p-3 md:p-8 max-w-4xl">
         <div className="card text-center py-16">
           <h2 className="text-[18px] font-bold text-slate-800 mb-2">Departments are for Hospitals only</h2>
           <p className="text-[13px] text-slate-500 mb-5">Set industry to <b>Health</b> and type to <b>Hospital</b> in Bot Setup.</p>
@@ -79,7 +79,7 @@ export default function DepartmentsPage() {
   };
 
   return (
-    <div className="p-8 animate-fade-in max-w-5xl">
+    <div className="p-3 md:p-8 animate-fade-in max-w-5xl">
       <div className="mb-8">
         <div className="page-breadcrumb">🏨 Departments</div>
         <h1 className="text-[28px] font-bold text-slate-900 mb-2">Hospital Departments</h1>

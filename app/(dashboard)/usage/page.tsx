@@ -104,7 +104,7 @@ export default function UsagePage() {
 
   if (loading) {
     return (
-      <div className="p-8 animate-fade-in">
+      <div className="p-3 md:p-8 animate-fade-in">
         <div className="text-center py-20 text-slate-400">Loading pricing data...</div>
       </div>
     );
@@ -112,7 +112,7 @@ export default function UsagePage() {
 
   if (!usage) {
     return (
-      <div className="p-8 animate-fade-in">
+      <div className="p-3 md:p-8 animate-fade-in">
         <div className="text-center py-20 text-slate-400">Failed to load pricing data</div>
       </div>
     );
@@ -132,7 +132,7 @@ export default function UsagePage() {
   const maxDailyCost = Math.max(...daily.map((d) => d.meta_cost_pkr), 1);
 
   return (
-    <div className="p-8 animate-fade-in max-w-5xl">
+    <div className="p-3 md:p-8 animate-fade-in max-w-5xl">
       <div className="mb-8">
         <div className="page-breadcrumb">💰 Pricing & Usage</div>
         <h1 className="text-[28px] font-bold text-slate-900 mb-2">Transparent Pricing</h1>

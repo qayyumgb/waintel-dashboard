@@ -89,7 +89,7 @@ export default function ReportsPage() {
   };
 
   return (
-    <div className="p-8 animate-fade-in max-w-4xl">
+    <div className="p-3 md:p-8 animate-fade-in max-w-4xl">
       <div className="mb-8 flex items-start justify-between">
         <div>
           <div className="page-breadcrumb">
