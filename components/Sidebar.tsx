@@ -31,6 +31,23 @@ const ECOMMERCE_NAV = [
   { href: "/products", label: "Products", icon: TagIcon },
 ];
 
+const HEALTH_CLINIC_NAV = [
+  { href: "/doctors", label: "Doctors", icon: StethoscopeIcon },
+  { href: "/medicines", label: "Medicines", icon: PillIcon },
+  { href: "/appointments", label: "Appointments", icon: CalendarIcon },
+];
+
+const HEALTH_HOSPITAL_NAV = [
+  { href: "/doctors", label: "Doctors", icon: StethoscopeIcon },
+  { href: "/departments", label: "Departments", icon: RoomIcon },
+  { href: "/medicines", label: "Medicines", icon: PillIcon },
+  { href: "/appointments", label: "Appointments", icon: CalendarIcon },
+];
+
+const HEALTH_PHARMACY_NAV = [
+  { href: "/medicines", label: "Medicines", icon: PillIcon },
+];
+
 const BOTTOM_NAV = [
   { href: "/analytics", label: "Analytics", icon: ChartIcon },
   { href: "/onboarding", label: "Setup Wizard", icon: WizardIcon },
@@ -44,18 +61,23 @@ export default function Sidebar() {
   const initials = userName.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2);
   const botId = (session as any)?.botId as string | undefined;
   const [industry, setIndustry] = useState<string>("");
+  const [healthcareType, setHealthcareType] = useState<string>("");
 
   useEffect(() => {
     if (!botId) return;
     axios.get(`${API}/api/bots/${botId}`)
-      .then((res) => setIndustry((res.data.industry || "").toLowerCase()))
+      .then((res) => {
+        setIndustry((res.data.industry || "").toLowerCase());
+        setHealthcareType((res.data.healthcare_type || "clinic").toLowerCase());
+      })
       .catch(() => {});
   }, [botId]);
 
   useEffect(() => {
     const handler = (e: Event) => {
-      const detail = (e as CustomEvent<{ industry: string }>).detail;
+      const detail = (e as CustomEvent<{ industry: string; healthcareType?: string }>).detail;
       if (detail?.industry) setIndustry(detail.industry);
+      if (detail?.healthcareType) setHealthcareType(detail.healthcareType);
     };
     window.addEventListener("botIndustryChanged", handler);
     return () => window.removeEventListener("botIndustryChanged", handler);
@@ -63,10 +85,17 @@ export default function Sidebar() {
 
   const isHotel = industry === "hotel";
   const isEcommerce = industry === "e-commerce" || industry === "ecommerce";
+  const isHealth = industry === "clinic" || industry === "health" || industry === "healthcare";
+
+  const healthNav = healthcareType === "hospital" ? HEALTH_HOSPITAL_NAV
+    : healthcareType === "pharmacy" ? HEALTH_PHARMACY_NAV
+    : HEALTH_CLINIC_NAV;
+
   const navItems = [
     ...BASE_NAV,
-    ...(isHotel ? HOTEL_NAV : ORDER_NAV),
+    ...(isHotel ? HOTEL_NAV : isHealth ? [] : ORDER_NAV),
     ...(isEcommerce ? ECOMMERCE_NAV : []),
+    ...(isHealth ? healthNav : []),
     ...BOTTOM_NAV,
   ];
 
@@ -253,6 +282,22 @@ function ReceiptIcon() {
   return (
     <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M9 14l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+    </svg>
+  );
+}
+
+function PillIcon() {
+  return (
+    <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+    </svg>
+  );
+}
+
+function StethoscopeIcon() {
+  return (
+    <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M8 3v9a4 4 0 008 0V3M5 3h2m10 0h2m-7 14v2a3 3 0 006 0v-2a3 3 0 00-3-3v0" />
     </svg>
   );
 }

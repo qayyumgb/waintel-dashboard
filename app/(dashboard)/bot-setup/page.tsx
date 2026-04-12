@@ -15,7 +15,7 @@ const HOTEL_REGIONS = [
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
-const INDUSTRIES = ["Restaurant", "Pharmacy", "Real Estate", "Hotel", "E-commerce", "Education", "Other"];
+const INDUSTRIES = ["Restaurant", "Real Estate", "Hotel", "E-commerce", "Health", "Education", "Other"];
 const TONES = ["Friendly", "Professional", "Formal"];
 const LANGUAGES = ["Auto-detect", "Urdu", "English", "Arabic"];
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
@@ -106,6 +106,19 @@ export default function BotSetupPage() {
     dailyReportPhone: "",
     dailyReportEmail: "",
     dailyReportChannel: "whatsapp" as "whatsapp" | "email" | "both",
+    // Healthcare
+    healthcareType: "clinic" as "clinic" | "hospital" | "pharmacy",
+    clinicTimings: "",
+    clinicEmergencyNumber: "",
+    clinicAddress: "",
+    clinicServices: "",
+    clinicLabServices: "",
+    patientPrivacyMode: false,
+    healthcareInsurancePanels: "",
+    pharmacyDeliveryAvailable: false,
+    pharmacyDeliveryCharge: 100,
+    pharmacyFreeDeliveryAbove: 2000,
+    visitingHours: "",
   });
   const [saving, setSaving] = useState(false);
   const [sendingTestReport, setSendingTestReport] = useState(false);
@@ -177,6 +190,18 @@ export default function BotSetupPage() {
           dailyReportPhone:   bot.daily_report_phone || "",
           dailyReportEmail:   bot.daily_report_email || "",
           dailyReportChannel: (bot.daily_report_channel as "whatsapp" | "email" | "both") || "whatsapp",
+          healthcareType:        (bot.healthcare_type as "clinic"|"hospital"|"pharmacy") || "clinic",
+          clinicTimings:         bot.clinic_timings         || "",
+          clinicEmergencyNumber: bot.clinic_emergency_number|| "",
+          clinicAddress:         bot.clinic_address         || "",
+          clinicServices:        bot.clinic_services        || "",
+          clinicLabServices:     bot.clinic_lab_services    || "",
+          patientPrivacyMode:    bot.patient_privacy_mode   || false,
+          healthcareInsurancePanels: bot.healthcare_insurance_panels || "",
+          pharmacyDeliveryAvailable: bot.pharmacy_delivery_available || false,
+          pharmacyDeliveryCharge:    bot.pharmacy_delivery_charge ?? 100,
+          pharmacyFreeDeliveryAbove: bot.pharmacy_free_delivery_above ?? 2000,
+          visitingHours:             bot.visiting_hours || "",
         }));
 
       } catch {
@@ -285,9 +310,24 @@ export default function BotSetupPage() {
         daily_report_phone:   form.dailyReportPhone,
         daily_report_email:   form.dailyReportEmail,
         daily_report_channel: form.dailyReportChannel,
+        // Healthcare fields (only sent if health/healthcare industry)
+        ...(["clinic", "health", "healthcare"].includes(form.industry.toLowerCase()) ? {
+          healthcare_type:              form.healthcareType,
+          clinic_timings:               form.clinicTimings,
+          clinic_emergency_number:      form.clinicEmergencyNumber,
+          clinic_address:               form.clinicAddress,
+          clinic_services:              form.clinicServices,
+          clinic_lab_services:          form.clinicLabServices,
+          patient_privacy_mode:         form.patientPrivacyMode,
+          healthcare_insurance_panels:  form.healthcareInsurancePanels,
+          pharmacy_delivery_available:  form.pharmacyDeliveryAvailable,
+          pharmacy_delivery_charge:     form.pharmacyDeliveryCharge,
+          pharmacy_free_delivery_above: form.pharmacyFreeDeliveryAbove,
+          visiting_hours:               form.visitingHours,
+        } : {}),
       });
       setToast({ message: "Bot configuration saved!", type: "success" });
-      window.dispatchEvent(new CustomEvent("botIndustryChanged", { detail: { industry: form.industry.toLowerCase() } }));
+      window.dispatchEvent(new CustomEvent("botIndustryChanged", { detail: { industry: form.industry.toLowerCase(), healthcareType: form.healthcareType } }));
     } catch {
       setToast({ message: "Failed to save configuration", type: "error" });
     } finally {
@@ -729,6 +769,131 @@ ${form.displayName || "Your Business"}
         )}
       </div>
 
+      {/* Section 8 — Healthcare Configuration */}
+      {["clinic", "health", "healthcare"].includes(form.industry.toLowerCase()) && (() => {
+        const ht = form.healthcareType;
+        const isHospital = ht === "hospital";
+        const isPharmacy = ht === "pharmacy";
+        return (
+        <div className="card mb-5">
+          <h2 className="text-[16px] font-bold text-slate-800 mb-5 flex items-center gap-2">
+            <span className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold text-white" style={{ background: "#1D9E75" }}>8</span>
+            🏥 Healthcare Configuration
+          </h2>
+
+          <div className="mb-5">
+            <label className="form-label">Healthcare Type</label>
+            <div className="grid grid-cols-3 gap-2">
+              {([
+                { value: "clinic", label: "🏥 Clinic", desc: "Small clinic, 1-10 doctors" },
+                { value: "hospital", label: "🏨 Hospital", desc: "Departments, OPD, wards" },
+                { value: "pharmacy", label: "💊 Pharmacy", desc: "Medicine store, delivery" },
+              ] as const).map((t) => (
+                <button key={t.value} type="button" onClick={() => updateField("healthcareType", t.value)}
+                  className="px-3 py-3 rounded-xl text-[12px] font-medium transition-all text-left"
+                  style={{
+                    background: ht === t.value ? "rgba(29,158,117,0.1)" : "#f8fafc",
+                    border: ht === t.value ? "2px solid #1D9E75" : "2px solid #e2e8f0",
+                    color: ht === t.value ? "#047857" : "#64748b",
+                  }}>
+                  <div className="font-semibold">{t.label}</div>
+                  <div className="text-[10px] mt-0.5 opacity-70">{t.desc}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-4">
+            <div>
+              <label className="form-label">Timings</label>
+              <input className="form-input" value={form.clinicTimings} onChange={(e) => updateField("clinicTimings", e.target.value)} placeholder={isPharmacy ? "9am - 10pm" : "Mon-Sat 9:00am - 6:00pm"} />
+            </div>
+            <div>
+              <label className="form-label">Emergency Number</label>
+              <input className="form-input" value={form.clinicEmergencyNumber} onChange={(e) => updateField("clinicEmergencyNumber", e.target.value)} placeholder="03001234567" />
+            </div>
+          </div>
+
+          <div className="mb-4">
+            <label className="form-label">Address</label>
+            <textarea className="form-input" rows={2} value={form.clinicAddress} onChange={(e) => updateField("clinicAddress", e.target.value)} placeholder="Main Boulevard, Gulshan-e-Iqbal, Karachi" />
+          </div>
+
+          {/* Hospital + Clinic: services + lab */}
+          {!isPharmacy && (
+            <>
+              <div className="mb-4">
+                <label className="form-label">Services Offered</label>
+                <textarea className="form-input" rows={2} value={form.clinicServices} onChange={(e) => updateField("clinicServices", e.target.value)} placeholder="General consultation, Blood tests, X-Ray, ECG, Ultrasound" />
+              </div>
+              <div className="mb-4">
+                <label className="form-label">Lab Services</label>
+                <textarea className="form-input" rows={2} value={form.clinicLabServices} onChange={(e) => updateField("clinicLabServices", e.target.value)} placeholder="CBC, Blood Sugar, Urine RE, LFTs, TFTs, HbA1c" />
+              </div>
+            </>
+          )}
+
+          {/* Hospital only: visiting hours + insurance */}
+          {isHospital && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-4">
+              <div>
+                <label className="form-label">Visiting Hours</label>
+                <input className="form-input" value={form.visitingHours} onChange={(e) => updateField("visitingHours", e.target.value)} placeholder="11am-1pm, 5pm-7pm" />
+              </div>
+              <div>
+                <label className="form-label">Insurance Panels</label>
+                <input className="form-input" value={form.healthcareInsurancePanels} onChange={(e) => updateField("healthcareInsurancePanels", e.target.value)} placeholder="Jubilee, EFU, Adamjee, State Life" />
+              </div>
+            </div>
+          )}
+
+          {/* Pharmacy only: delivery settings */}
+          {isPharmacy && (
+            <>
+              <div className="flex items-center justify-between p-3 rounded-xl mb-4" style={{ background: "rgba(29,158,117,0.04)", border: "1px solid #e5e7eb" }}>
+                <div>
+                  <div className="text-[13px] font-semibold text-slate-800">Home Delivery</div>
+                  <div className="text-[11px] text-slate-500">Enable medicine delivery to customer&apos;s address</div>
+                </div>
+                <label className="inline-flex items-center cursor-pointer">
+                  <input type="checkbox" className="sr-only peer" checked={form.pharmacyDeliveryAvailable} onChange={(e) => updateField("pharmacyDeliveryAvailable", e.target.checked)} />
+                  <div className="relative w-11 h-6 bg-slate-200 peer-checked:bg-[#1D9E75] rounded-full transition-colors">
+                    <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${form.pharmacyDeliveryAvailable ? "translate-x-5" : ""}`} />
+                  </div>
+                </label>
+              </div>
+              {form.pharmacyDeliveryAvailable && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-4">
+                  <div>
+                    <label className="form-label">Delivery Charge (Rs.)</label>
+                    <input type="number" className="form-input" value={form.pharmacyDeliveryCharge} onChange={(e) => updateField("pharmacyDeliveryCharge", parseInt(e.target.value) || 0)} />
+                  </div>
+                  <div>
+                    <label className="form-label">Free Delivery Above (Rs.)</label>
+                    <input type="number" className="form-input" value={form.pharmacyFreeDeliveryAbove} onChange={(e) => updateField("pharmacyFreeDeliveryAbove", parseInt(e.target.value) || 0)} />
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* All types: privacy mode */}
+          <div className="flex items-center justify-between p-3 rounded-xl" style={{ background: "rgba(29,158,117,0.04)", border: "1px solid #e5e7eb" }}>
+            <div>
+              <div className="text-[13px] font-semibold text-slate-800">Patient Privacy Mode</div>
+              <div className="text-[11px] text-slate-500">Minimize patient data in messages</div>
+            </div>
+            <label className="inline-flex items-center cursor-pointer">
+              <input type="checkbox" className="sr-only peer" checked={form.patientPrivacyMode} onChange={(e) => updateField("patientPrivacyMode", e.target.checked)} />
+              <div className="relative w-11 h-6 bg-slate-200 peer-checked:bg-[#1D9E75] rounded-full transition-colors">
+                <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${form.patientPrivacyMode ? "translate-x-5" : ""}`} />
+              </div>
+            </label>
+          </div>
+        </div>
+        );
+      })()}
+
       {/* Section 8 — Hotel Configuration (hotel industry only) */}
       {form.industry.toLowerCase() === "hotel" && (
         <div className="card mb-5">
@@ -1032,3 +1197,4 @@ function QuickConnectPanel({ botId }: { botId: string }) {
     </div>
   );
 }
+
