@@ -48,6 +48,11 @@ const HEALTH_PHARMACY_NAV = [
   { href: "/medicines", label: "Medicines", icon: PillIcon },
 ];
 
+const EDUCATION_NAV = [
+  { href: "/courses", label: "Courses", icon: BookIcon },
+  { href: "/enrollments", label: "Enrollments", icon: CalendarIcon },
+];
+
 const BOTTOM_NAV = [
   { href: "/analytics", label: "Analytics", icon: ChartIcon },
   { href: "/onboarding", label: "Setup Wizard", icon: WizardIcon },
@@ -86,6 +91,7 @@ export default function Sidebar() {
   const isHotel = industry === "hotel";
   const isEcommerce = industry === "e-commerce" || industry === "ecommerce";
   const isHealth = industry === "clinic" || industry === "health" || industry === "healthcare";
+  const isEdu = industry === "education";
 
   const healthNav = healthcareType === "hospital" ? HEALTH_HOSPITAL_NAV
     : healthcareType === "pharmacy" ? HEALTH_PHARMACY_NAV
@@ -93,9 +99,10 @@ export default function Sidebar() {
 
   const navItems = [
     ...BASE_NAV,
-    ...(isHotel ? HOTEL_NAV : isHealth ? [] : ORDER_NAV),
+    ...(isHotel ? HOTEL_NAV : isHealth || isEdu ? [] : ORDER_NAV),
     ...(isEcommerce ? ECOMMERCE_NAV : []),
     ...(isHealth ? healthNav : []),
+    ...(isEdu ? EDUCATION_NAV : []),
     ...BOTTOM_NAV,
   ];
 

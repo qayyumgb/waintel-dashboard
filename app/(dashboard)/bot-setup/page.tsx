@@ -119,6 +119,14 @@ export default function BotSetupPage() {
     pharmacyDeliveryCharge: 100,
     pharmacyFreeDeliveryAbove: 2000,
     visitingHours: "",
+    // Education
+    eduType: "academy",
+    eduAdmissionOpen: true,
+    eduAdmissionDeadline: "",
+    eduAddress: "",
+    eduTimings: "",
+    eduContactEmail: "",
+    eduRequiredDocs: "",
   });
   const [saving, setSaving] = useState(false);
   const [sendingTestReport, setSendingTestReport] = useState(false);
@@ -202,6 +210,13 @@ export default function BotSetupPage() {
           pharmacyDeliveryCharge:    bot.pharmacy_delivery_charge ?? 100,
           pharmacyFreeDeliveryAbove: bot.pharmacy_free_delivery_above ?? 2000,
           visitingHours:             bot.visiting_hours || "",
+          eduType:                   bot.edu_type || "academy",
+          eduAdmissionOpen:          bot.edu_admission_open ?? true,
+          eduAdmissionDeadline:      bot.edu_admission_deadline ? String(bot.edu_admission_deadline).split("T")[0] : "",
+          eduAddress:                bot.edu_address || "",
+          eduTimings:                bot.edu_timings || "",
+          eduContactEmail:           bot.edu_contact_email || "",
+          eduRequiredDocs:           bot.edu_required_docs || "",
         }));
 
       } catch {
@@ -303,6 +318,16 @@ export default function BotSetupPage() {
           woocommerce_url:      form.woocommerceUrl,
           woocommerce_key:      form.woocommerceKey,
           woocommerce_secret:   form.woocommerceSecret,
+        } : {}),
+        // Education fields
+        ...(form.industry.toLowerCase() === "education" ? {
+          edu_type:                form.eduType,
+          edu_admission_open:      form.eduAdmissionOpen,
+          edu_admission_deadline:  form.eduAdmissionDeadline || null,
+          edu_address:             form.eduAddress,
+          edu_timings:             form.eduTimings,
+          edu_contact_email:       form.eduContactEmail,
+          edu_required_docs:       form.eduRequiredDocs,
         } : {}),
         // Business Pulse (always sent)
         daily_report_enabled: form.dailyReportEnabled,
@@ -893,6 +918,78 @@ ${form.displayName || "Your Business"}
         </div>
         );
       })()}
+
+      {/* Section 8 — Education Configuration */}
+      {form.industry.toLowerCase() === "education" && (
+        <div className="card mb-5">
+          <h2 className="text-[16px] font-bold text-slate-800 mb-5 flex items-center gap-2">
+            <span className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold text-white" style={{ background: "#1D9E75" }}>8</span>
+            🎓 Education Configuration
+          </h2>
+
+          <div className="mb-5">
+            <label className="form-label">Institution Type</label>
+            <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+              {([
+                { value: "school", label: "🏫 School" },
+                { value: "college", label: "🏛️ College" },
+                { value: "university", label: "🎓 University" },
+                { value: "academy", label: "📚 Academy" },
+                { value: "coaching", label: "🧠 Coaching" },
+                { value: "online", label: "💻 Online" },
+              ] as const).map((t) => (
+                <button key={t.value} type="button" onClick={() => updateField("eduType", t.value)}
+                  className="px-2 py-2.5 rounded-xl text-[11px] font-medium transition-all text-center"
+                  style={{
+                    background: form.eduType === t.value ? "rgba(29,158,117,0.1)" : "#f8fafc",
+                    border: form.eduType === t.value ? "2px solid #1D9E75" : "2px solid #e2e8f0",
+                    color: form.eduType === t.value ? "#047857" : "#64748b",
+                  }}>
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between p-3 rounded-xl mb-4" style={{ background: form.eduAdmissionOpen ? "#f0fdf4" : "#fef2f2", border: `1px solid ${form.eduAdmissionOpen ? "#bbf7d0" : "#fecaca"}` }}>
+            <div>
+              <div className="text-[13px] font-semibold text-slate-800">{form.eduAdmissionOpen ? "✅ Admissions Open" : "❌ Admissions Closed"}</div>
+              <div className="text-[11px] text-slate-500">Students can {form.eduAdmissionOpen ? "" : "NOT "}enroll via WhatsApp</div>
+            </div>
+            <label className="inline-flex items-center cursor-pointer">
+              <input type="checkbox" className="sr-only peer" checked={form.eduAdmissionOpen} onChange={(e) => updateField("eduAdmissionOpen", e.target.checked)} />
+              <div className="relative w-11 h-6 bg-slate-200 peer-checked:bg-[#1D9E75] rounded-full transition-colors">
+                <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${form.eduAdmissionOpen ? "translate-x-5" : ""}`} />
+              </div>
+            </label>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-4">
+            <div>
+              <label className="form-label">Admission Deadline</label>
+              <input type="date" className="form-input" value={form.eduAdmissionDeadline} onChange={(e) => updateField("eduAdmissionDeadline", e.target.value)} />
+            </div>
+            <div>
+              <label className="form-label">Office Timings</label>
+              <input className="form-input" value={form.eduTimings} onChange={(e) => updateField("eduTimings", e.target.value)} placeholder="Mon-Sat 9am-5pm" />
+            </div>
+            <div>
+              <label className="form-label">Contact Email</label>
+              <input type="email" className="form-input" value={form.eduContactEmail} onChange={(e) => updateField("eduContactEmail", e.target.value)} placeholder="info@academy.com" />
+            </div>
+          </div>
+
+          <div className="mb-4">
+            <label className="form-label">Address</label>
+            <textarea className="form-input" rows={2} value={form.eduAddress} onChange={(e) => updateField("eduAddress", e.target.value)} placeholder="Main Market, Gulberg, Lahore" />
+          </div>
+
+          <div>
+            <label className="form-label">Required Documents for Enrollment</label>
+            <textarea className="form-input" rows={3} value={form.eduRequiredDocs} onChange={(e) => updateField("eduRequiredDocs", e.target.value)} placeholder="Matric certificate, CNIC copy, 2 passport photos, Character certificate" />
+          </div>
+        </div>
+      )}
 
       {/* Section 8 — Hotel Configuration (hotel industry only) */}
       {form.industry.toLowerCase() === "hotel" && (
