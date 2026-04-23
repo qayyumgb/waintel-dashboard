@@ -46,13 +46,15 @@ const plans = [
     features: [
       "Unlimited numbers",
       "Unlimited conversations",
-      "White-label branding",
-      "Client sub-accounts",
+      "🏢 White-label branding (your logo, colors, domain)",
+      "👥 Resell to your own clients",
+      "💰 Set your own client pricing & keep the margin",
+      "📊 Multi-client dashboard & revenue tracking",
       "API access",
       "Dedicated support",
     ],
     featured: false,
-    cta: "Contact Sales",
+    cta: "Upgrade to Agency",
   },
 ];
 
@@ -62,11 +64,6 @@ export default function PricingPage() {
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
   const handleCheckout = async (planName: string) => {
-    if (planName === "Agency") {
-      setToast({ message: "Contact sales at hello@waintel.ai for Agency plan", type: "success" });
-      return;
-    }
-
     if (!TENANT_ID) {
       setToast({ message: "Please log in first", type: "error" });
       return;

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import SessionProvider from "@/components/SessionProvider";
+import { WhiteLabelProvider } from "@/components/WhiteLabelProvider";
 
 const inter = Inter({
   variable: "--font-geist-sans",
@@ -22,7 +23,9 @@ export default function RootLayout({
     <html lang="en" className={`${inter.variable} h-full`}>
       <body suppressHydrationWarning className="min-h-screen" style={{ background: "#f6f7fb" }}>
         <SessionProvider>
-          {children}
+          <WhiteLabelProvider>
+            {children}
+          </WhiteLabelProvider>
         </SessionProvider>
       </body>
     </html>

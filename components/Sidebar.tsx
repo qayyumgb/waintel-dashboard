@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import axios from "axios";
+import { useWhiteLabel } from "@/components/WhiteLabelProvider";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
@@ -55,6 +56,15 @@ const EDUCATION_NAV = [
   { href: "/enrollments", label: "Enrollments", icon: CalendarIcon },
 ];
 
+const AGENCY_NAV_FULL = [
+  { href: "/agency", label: "Agency Overview", icon: BuildingIcon },
+  { href: "/agency/setup", label: "White-Label Setup", icon: SettingsIcon },
+];
+
+const AGENCY_NAV_SETUP_ONLY = [
+  { href: "/agency/setup", label: "Set up Agency", icon: BuildingIcon },
+];
+
 const BOTTOM_NAV = [
   { href: "/analytics", label: "Analytics", icon: ChartIcon },
   { href: "/onboarding", label: "Setup Wizard", icon: WizardIcon },
@@ -63,12 +73,16 @@ const BOTTOM_NAV = [
 export default function Sidebar({ isOpen, onClose }: { isOpen?: boolean; onClose?: () => void }) {
   const pathname = usePathname();
   const { data: session } = useSession();
+  const wl = useWhiteLabel();
   const userName = session?.user?.name || "My Business";
   const userEmail = session?.user?.email || "";
   const initials = userName.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2);
   const botId = (session as any)?.botId as string | undefined;
+  const tenantId = (session as any)?.tenantId as string | undefined;
   const [industry, setIndustry] = useState<string>("");
   const [healthcareType, setHealthcareType] = useState<string>("");
+  const [hasAgencyPlan, setHasAgencyPlan] = useState<boolean>(false);
+  const [hasAgencyProfile, setHasAgencyProfile] = useState<boolean>(false);
 
   useEffect(() => {
     if (!botId) return;
@@ -79,6 +93,24 @@ export default function Sidebar({ isOpen, onClose }: { isOpen?: boolean; onClose
       })
       .catch(() => {});
   }, [botId]);
+
+  const refreshAgencyState = useCallback(() => {
+    if (!tenantId) return;
+    axios.get(`${API}/api/agency/profile?tenantId=${tenantId}`)
+      .then((res) => {
+        setHasAgencyPlan(!!res.data.hasAgencyPlan);
+        setHasAgencyProfile(!!res.data.hasAgencyProfile);
+      })
+      .catch(() => { setHasAgencyPlan(false); setHasAgencyProfile(false); });
+  }, [tenantId]);
+
+  useEffect(() => { refreshAgencyState(); }, [refreshAgencyState]);
+
+  useEffect(() => {
+    const handler = () => refreshAgencyState();
+    window.addEventListener("agencyProfileChanged", handler);
+    return () => window.removeEventListener("agencyProfileChanged", handler);
+  }, [refreshAgencyState]);
 
   useEffect(() => {
     const handler = (e: Event) => {
@@ -99,7 +131,12 @@ export default function Sidebar({ isOpen, onClose }: { isOpen?: boolean; onClose
     : healthcareType === "pharmacy" ? HEALTH_PHARMACY_NAV
     : HEALTH_CLINIC_NAV;
 
+  const agencyNav = hasAgencyPlan
+    ? (hasAgencyProfile ? AGENCY_NAV_FULL : AGENCY_NAV_SETUP_ONLY)
+    : [];
+
   const navItems = [
+    ...agencyNav,
     ...BASE_NAV,
     ...(isHotel ? HOTEL_NAV : isHealth || isEdu ? [] : ORDER_NAV),
     ...(isEcommerce ? ECOMMERCE_NAV : []),
@@ -112,7 +149,7 @@ export default function Sidebar({ isOpen, onClose }: { isOpen?: boolean; onClose
     <aside
       className={`fixed left-0 top-0 bottom-0 w-[264px] flex flex-col z-40 transition-transform duration-300 ${isOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0`}
       style={{
-        background: "linear-gradient(180deg, #1D9E75 0%, #0F6E56 50%, #0A5A45 100%)",
+        background: `linear-gradient(180deg, ${wl.primaryColor} 0%, ${wl.secondaryColor} 100%)`,
         borderRight: "1px solid rgba(255,255,255,0.1)",
         boxShadow: "4px 0 24px rgba(0,0,0,0.15)",
       }}
@@ -120,16 +157,21 @@ export default function Sidebar({ isOpen, onClose }: { isOpen?: boolean; onClose
       {/* Logo + close button */}
       <div className="px-6 py-6 flex items-center gap-3">
         <div
-          className="w-[42px] h-[42px] rounded-xl flex items-center justify-center text-lg font-bold text-white shrink-0"
+          className="w-[42px] h-[42px] rounded-xl flex items-center justify-center text-lg font-bold text-white shrink-0 overflow-hidden"
           style={{ background: "rgba(255,255,255,0.15)", backdropFilter: "blur(8px)" }}
         >
-          W
+          {wl.logoUrl
+            ? <img src={wl.logoUrl} alt={wl.name} className="w-full h-full object-cover" />
+            : (wl.name || "W").charAt(0).toUpperCase()
+          }
         </div>
         <div className="flex-1 min-w-0">
-          <div className="text-white font-bold text-[15px] leading-tight">Waintel.ai</div>
-          <div className="text-white/60 text-[10px] font-semibold uppercase tracking-wider">
-            WhatsApp AI Agent
-          </div>
+          <div className="text-white font-bold text-[15px] leading-tight truncate">{wl.name}</div>
+          {!wl.hideWaintelBranding && (
+            <div className="text-white/60 text-[10px] font-semibold uppercase tracking-wider">
+              WhatsApp AI Agent
+            </div>
+          )}
         </div>
         <button
           onClick={() => onClose?.()}
@@ -346,6 +388,14 @@ function ExportIcon() {
   return (
     <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M12 12V4m0 0l-4 4m4-4l4 4M8 12h8" />
+    </svg>
+  );
+}
+
+function BuildingIcon() {
+  return (
+    <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0H5m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
     </svg>
   );
 }
