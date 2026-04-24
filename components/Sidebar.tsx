@@ -84,6 +84,7 @@ export default function Sidebar({ isOpen, onClose }: { isOpen?: boolean; onClose
   const [healthcareType, setHealthcareType] = useState<string>("");
   const [hasAgencyPlan, setHasAgencyPlan] = useState<boolean>(false);
   const [hasAgencyProfile, setHasAgencyProfile] = useState<boolean>(false);
+  const [plan, setPlan] = useState<string>("");
 
   useEffect(() => {
     if (!botId) return;
@@ -101,6 +102,7 @@ export default function Sidebar({ isOpen, onClose }: { isOpen?: boolean; onClose
       .then((res) => {
         setHasAgencyPlan(!!res.data.hasAgencyPlan);
         setHasAgencyProfile(!!res.data.hasAgencyProfile);
+        setPlan(res.data.plan || "");
       })
       .catch(() => { setHasAgencyPlan(false); setHasAgencyProfile(false); });
   }, [tenantId]);
@@ -240,6 +242,23 @@ export default function Sidebar({ isOpen, onClose }: { isOpen?: boolean; onClose
           <div className="flex-1 min-w-0">
             <div className="text-white text-[13px] font-semibold truncate">{userName}</div>
             <div className="text-white/50 text-[11px] truncate">{userEmail}</div>
+            {plan && (
+              <div className="mt-1 inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full"
+                style={{
+                  background: plan === "trial" ? "rgba(245,158,11,0.25)"
+                    : plan === "agency" ? "rgba(255,255,255,0.25)"
+                    : plan === "business" ? "rgba(59,130,246,0.25)"
+                    : "rgba(255,255,255,0.15)",
+                  color: "#fff",
+                }}
+              >
+                {plan === "trial" ? "🎁 Free Trial"
+                  : plan === "agency" ? "🏢 Agency"
+                  : plan === "business" ? "💼 Business"
+                  : plan === "starter" ? "🚀 Starter"
+                  : plan.toUpperCase()}
+              </div>
+            )}
           </div>
         </div>
         <button

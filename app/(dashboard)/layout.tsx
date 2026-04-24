@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Sidebar from "@/components/Sidebar";
+import TrialBanner from "@/components/TrialBanner";
 
 export default function DashboardLayout({
   children,
@@ -40,6 +41,7 @@ export default function DashboardLayout({
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       <main className="flex-1 md:ml-[264px] min-h-screen overflow-y-auto pt-14 md:pt-0">
+        <TrialBanner />
         {children}
       </main>
     </div>
