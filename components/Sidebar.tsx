@@ -19,6 +19,7 @@ const BASE_NAV = [
   { href: "/leads", label: "Leads", icon: FireIcon },
   { href: "/intelligence", label: "Intelligence", icon: BrainIcon },
   { href: "/campaigns", label: "Campaigns", icon: MegaphoneIcon },
+  { href: "/developer", label: "Developer", icon: CodeIcon },
   { href: "/branches", label: "Branches", icon: PinIcon },
   { href: "/crm", label: "CRM & Exports", icon: ExportIcon },
   { href: "/usage", label: "Pricing & Usage", icon: ReceiptIcon },
@@ -411,6 +412,14 @@ function ExportIcon() {
   return (
     <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M12 12V4m0 0l-4 4m4-4l4 4M8 12h8" />
+    </svg>
+  );
+}
+
+function CodeIcon() {
+  return (
+    <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
     </svg>
   );
 }
