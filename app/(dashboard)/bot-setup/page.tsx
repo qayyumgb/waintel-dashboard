@@ -548,8 +548,18 @@ export default function BotSetupPage() {
               <div>
                 <label className="form-label">Connection Status</label>
                 <div className="mt-2">
-                  {form.connectionStatus === "connected" ? (
+                  {/*
+                    The connection_status column is shared across both connection types.
+                    Only count Meta as "Connected" when the bot is actually configured for
+                    Meta (connection_type === 'official') AND has a real access token.
+                    Otherwise (e.g. QuickConnect is the active channel), show "Not configured".
+                  */}
+                  {form.connectionType === "official" && form.connectionStatus === "connected" && (form.accessToken || form.hasToken) ? (
                     <span className="badge-active">Connected</span>
+                  ) : form.connectionType !== "official" ? (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-semibold" style={{ background: "#f1f5f9", color: "#475569" }}>
+                      <span className="w-2 h-2 rounded-full bg-slate-400" /> Not configured (using QuickConnect)
+                    </span>
                   ) : form.connectionStatus === "pending" ? (
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-semibold" style={{ background: "#fef3c7", color: "#92400e" }}>
                       <span className="w-2 h-2 rounded-full bg-amber-400" /> Pending setup
@@ -1197,6 +1207,30 @@ function QuickConnectPanel({ botId }: { botId: string }) {
       setPhone(null);
     } catch { /* silent */ }
   };
+
+  // Live status check on mount + periodic refresh every 15s.
+  // Catches the case where Baileys disconnects in the background after initial connect.
+  useEffect(() => {
+    if (!botId) return;
+    const checkLive = async () => {
+      try {
+        const res = await axios.get(`${API}/api/bots/${botId}/quickconnect/status`);
+        const live = res.data?.status;
+        // Only auto-update if we're not in the middle of a user-initiated connect attempt
+        if (live && live !== "not_initialized") {
+          setQcStatus((current) => {
+            if (current === "connecting" || current === "qr_ready") return current;
+            return live;
+          });
+          if (live === "connected" && res.data?.phoneNumber) setPhone(res.data.phoneNumber);
+          if (live !== "connected") setPhone(null);
+        }
+      } catch { /* silent — backend may be down or bot not yet initialized */ }
+    };
+    checkLive();
+    const id = setInterval(checkLive, 15000);
+    return () => clearInterval(id);
+  }, [botId]);
 
   // Poll for QR/status (timeout after 45 seconds)
   useEffect(() => {

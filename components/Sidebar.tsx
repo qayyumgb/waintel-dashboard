@@ -16,6 +16,7 @@ const BASE_NAV = [
   { href: "/conversations", label: "Conversations", icon: ChatIcon },
   { href: "/reports", label: "Reports", icon: ReportIcon },
   { href: "/followups", label: "Follow-ups", icon: BellIcon },
+  { href: "/leads", label: "Leads", icon: FireIcon },
   { href: "/branches", label: "Branches", icon: PinIcon },
   { href: "/crm", label: "CRM & Exports", icon: ExportIcon },
   { href: "/usage", label: "Pricing & Usage", icon: ReceiptIcon },
@@ -408,6 +409,14 @@ function ExportIcon() {
   return (
     <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M12 12V4m0 0l-4 4m4-4l4 4M8 12h8" />
+    </svg>
+  );
+}
+
+function FireIcon() {
+  return (
+    <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.24 17 7.317 17.91 9.395 17.121 14 19 14c1.5 0 2-2 2-3 0-2-1-4-1-4 0 1.5-.5 3.658-1.5 4.5C19 12 18 14 17.657 18.657z" />
     </svg>
   );
 }
